@@ -6,6 +6,7 @@ if __name__ == '__main__':
 
 from multiprocessing import shared_memory
 import antimony
+import csv
 import numpy as np
 import os
 from random import randint
@@ -78,10 +79,68 @@ class ParamDist:
     def from_json(data: dict):
         dist_params = data['dist_params']
         dist_params_types = data['dist_params_types']
-        return ParamDist(data['param_name'], 
-                         data['dist_name'], 
-                         tuple([val_types[dist_params_types[i]](dist_params[i]) 
-                          for i in range(len(dist_params))]))
+        return ParamDist(data['param_name'],
+                         data['dist_name'],
+                         [val_types[dist_params_types[i]](dist_params[i])
+                          for i in range(len(dist_params))])
+
+
+DEF_SIGFIGS = 15
+
+
+def round_to_sigfigs(_val: float, _sigfigs: int):
+    if _val == 0:
+        return _val
+    else:
+        return np.round(_val, -int(np.multiply(np.sign(_val), np.floor(np.log10(np.abs(_val))))) + _sigfigs - 1)
+
+
+if has_numba:
+    round_to_sigfigs = numba.njit(round_to_sigfigs)
+
+
+def round_arr_to_sigfigs(_vals: np.ndarray, _sigfigs: int):
+    result = np.zeros_like(_vals, dtype=float)
+    result_r = result.ravel()
+    _vals_r = _vals.ravel()
+    for i in range(_vals_r.shape[0]):
+        result_r[i] = round_to_sigfigs(_vals_r[i], _sigfigs)
+    return result
+
+
+if has_numba:
+    round_arr_to_sigfigs = numba.njit(round_arr_to_sigfigs)
+
+
+def load_results_copasi(_fp: str, _sample_size: int, _num_steps: int):
+    reading_time = True
+    sample_times = np.zeros((_num_steps,))
+    results = np.zeros((_sample_size, _num_steps))
+
+    trial_idx = 0
+    step_idx = 0
+
+    with open(_fp, 'r') as f:
+        data_reader = csv.reader(f, delimiter='\t')
+        data_reader.__next__()
+
+        for row_t, row_v, _ in data_reader:
+            if row_t == 'nan':
+                trial_idx += 1
+                step_idx = 0
+                reading_time = False
+                if trial_idx >= results.shape[0]:
+                    break
+                continue
+            else:
+                if reading_time:
+                    sample_times[step_idx] = float(row_t)
+                results[trial_idx, step_idx] = float(row_v)
+                step_idx += 1
+
+    if trial_idx != _sample_size:
+        raise RuntimeError(f'Got {trial_idx} sample size but expected {_sample_size}')
+    return sample_times, results
 
 
 class Metadata:
@@ -94,7 +153,8 @@ class Metadata:
                  sample_times: np.ndarray,
                  ecf_evals: Dict[str, List[np.ndarray]],
                  ecf_eval_info: Dict[str, List[Tuple[int, float]]],
-                 param_dists: List[ParamDist] = None) -> None:
+                 param_dists: List[ParamDist] = None,
+                 sig_figs: int = DEF_SIGFIGS) -> None:
         if simulator not in known_sim_algs:
             raise ValueError(f'Unknown simulator algorithm: {simulator}')
         self.sample_size = sample_size
@@ -105,13 +165,15 @@ class Metadata:
         self.ecf_evals = ecf_evals
         self.ecf_eval_info = ecf_eval_info
         self.param_dists = param_dists
+        self.sig_figs = sig_figs
 
     def __str__(self) -> str:
         sl = [f'Sample size: {self.sample_size}',
               f'Simulator: {self.simulator}',
               f'K-S statistic: {self.ks_stat_mean}, {self.ks_stat_stdev}',
               f'No. sample times: {self.sample_times.shape[0]}',
-              f'Variables: {list(self.ecf_evals.keys())}']
+              f'Variables: {list(self.ecf_evals.keys())}',
+              f'Significant figures: {self.sig_figs}']
         if self.param_dists is not None:
             sl.append(f'Parameters sampled: {[pd.param_name for pd in self.param_dists]}')
         return '\n'.join(sl)
@@ -123,7 +185,8 @@ class Metadata:
                     ks_stat_stdev=self.ks_stat_stdev,
                     sample_times=self.sample_times.tolist(),
                     ecf_evals={k: [vv.tolist() for vv in v] for k, v in self.ecf_evals.items()},
-                    ecf_eval_info=self.ecf_eval_info)
+                    ecf_eval_info=self.ecf_eval_info,
+                    sig_figs=self.sig_figs)
         if self.param_dists is not None:
             data['param_dists'] = [v.to_json() for v in self.param_dists]
         return data
@@ -140,7 +203,8 @@ class Metadata:
                         np.array(data['sample_times'], dtype=float),
                         {k: [np.array(vv, dtype=float) for vv in v] for k, v in data['ecf_evals'].items()},
                         {k: [(int(vv[0]), float(vv[1])) for vv in v] for k, v in data['ecf_eval_info'].items()},
-                        param_dists)
+                        param_dists,
+                        int(data['sig_figs']))
 
 
 def antimony_to_sbml(_model_string_antimony: str) -> str:
