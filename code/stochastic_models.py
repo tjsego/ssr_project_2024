@@ -27,7 +27,7 @@ class SBMLModel:
     def from_json(json_data: dict):
         return SBMLModel(sbml=json_data['sbml'],
                          results_names=json_data['results_names'],
-                         param_dists={k: (float(tt) for tt in t) for k, t in json_data['param_dists'].items()} if 'param_dists' in json_data.keys() else None,
+                         param_dists={k: (t[0], tuple([float(tt) for tt in t[1]])) for k, t in json_data['param_dists'].items()} if 'param_dists' in json_data.keys() else None,
                          mods=json_data['mods'] if 'mods' in json_data.keys() else None)
 
     def save(self, file_path: str):

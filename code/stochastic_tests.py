@@ -168,6 +168,9 @@ class Test:
 
         return result
 
+    def clone(self):
+        return Test.from_json(self.to_json())
+
     def save(self, file_path: str):
         with open(file_path, 'w') as f:
             json.dump(self.to_json(), f)
