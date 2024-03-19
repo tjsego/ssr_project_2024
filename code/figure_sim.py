@@ -2,8 +2,8 @@ import argparse
 import json
 from matplotlib import pyplot as plt
 from matplotlib import gridspec
+from matplotlib import transforms as mtransforms
 import multiprocessing as mp
-import numpy as np
 import os
 from typing import List
 
@@ -11,6 +11,7 @@ import sim_lib
 from sim_2_curator_py import CuratorAnalysis
 from sim_2_modeler_py import SimulationReport
 
+plt.rcParams['axes.labelsize'] = 8.0
 plt.rcParams['font.sans-serif'] = 'Arial'
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.size'] = 8.0
@@ -19,11 +20,6 @@ plt.rcParams['figure.titlesize'] = 9.0
 plt.rcParams['savefig.dpi'] = 300
 plt.rcParams['lines.linewidth'] = 1.0
 plt.rcParams['lines.markersize'] = 1.0
-
-
-# res_dir = os.path.join(os.path.dirname(__file__), 'results', 'workflow_sim_2_py')
-# res_dir_modeler = os.path.join(res_dir, 'modeler_6')
-# res_dir_curator = os.path.join(res_dir, 'curator_results_same')
 
 
 def get_modeler_metadata(res_dir_modeler: str):
@@ -93,10 +89,16 @@ def panel_trajectories(simdata: SimulationReport, sizes: List[int], axs):
         axs[0][i].set_title(name).set_fontstyle('italic')
 
 
-def panel_error_distributions(report: SimulationReport, size_sel: List[int], axs):
+def panel_error_distributions(report: SimulationReport, 
+                              size_sel: List[int], 
+                              annotations: List[dict],
+                              axs):
     for i, size_idx in enumerate(size_sel):
         axs[i].hist(report.ks_stats_samp_hist[size_idx], density=True)
     axs[0].set_title('Error metric density').set_fontstyle('italic')
+
+    for i, annot in enumerate(annotations):
+        axs[i].text(transform=axs[i].transAxes, **annot)
 
 
 def panel_error_hist(report: SimulationReport, ax):
@@ -116,7 +118,7 @@ def panel_error_hist(report: SimulationReport, ax):
     ax.set_ylabel('Error metric')
 
 
-def panel_ecfs(eval_t, ecfs_modeler, ecfs_curator, var_names: List[str], axs):
+def panel_ecfs(eval_t, ecfs_modeler, ecfs_curator, var_names: List[str], xticks, axs):
     for i, name in enumerate(var_names):
         for j in range(2):
             axs[i][j].plot(eval_t[name], ecfs_modeler[name][:, j], alpha=0.5)
@@ -124,6 +126,8 @@ def panel_ecfs(eval_t, ecfs_modeler, ecfs_curator, var_names: List[str], axs):
 
     for i, name in enumerate(var_names):
         axs[i][0].set_ylabel(name).set_fontstyle('italic')
+        axs[i][0].set_xticks(xticks[i])
+        axs[i][1].set_xticks(xticks[i])
     axs[0][0].set_title('Real').set_fontstyle('italic')
     axs[0][1].set_title('Imaginary').set_fontstyle('italic')
 
@@ -143,45 +147,6 @@ def generate_figure(res_dir: str, output_dir: str = None, preview=False):
     # modeler_metadata, analysis = conn_comparison_2.recv()
 
     print('Generating plot...')
-    
-    # fig = plt.figure(figsize=(4.72, 4.72), layout='constrained')
-    # gs = fig.add_gridspec(7, 7)
-
-    # label_kwargs = dict(
-    #     fontsize=10,
-    #     fontproperties={'weight': 'bold'}
-    # )
-
-    # # Top: Modeler trajectories (left) and error metric distribution (right) with increasing sample size (top to bottom)
-    # size_sel = [0, 3, 4]
-    # sizes = [modeler_simdata.stat_hist[i][0] for i in size_sel]
-    # subfig_trajectories = fig.add_subfigure(gs[:3, :4])
-    # axs_trajectories = subfig_trajectories.subplots(3, 4, sharex=True)
-    # panel_trajectories(modeler_simdata, sizes, axs_trajectories)
-    # subfig_trajectories.text(0.5, 0.0, 'Time', ha='center', va='bottom')
-    # subfig_trajectories.text(0.0, 1.0, 'A', ha='left', va='top', **label_kwargs)
-
-    # subfig_error_distributions = fig.add_subfigure(gs[:3, 4:])
-    # axs_error_distributions = subfig_error_distributions.subplots(3, 1, sharex=True)
-    # panel_error_distributions(modeler_simdata, size_sel, axs_error_distributions)
-    # subfig_error_distributions.text(0.5, 0.0, 'Error metric', ha='center', va='bottom')
-    # subfig_error_distributions.text(0.0, 1.0, 'B', ha='left', va='top', **label_kwargs)
-
-    # # Bottom left: Modeler error metric vs. sample size
-    # subfig_error_hist = fig.add_subfigure(gs[3:, :4])
-    # ax_error_hist = subfig_error_hist.subplots(1, 1)
-    # panel_error_hist(modeler_simdata, ax_error_hist)
-    # subfig_error_hist.text(0.0, 1.0, 'C', ha='left', va='top', **label_kwargs)
-
-    # # Bottom right: Modeler vs. Curator ECFs
-    # subfig_ecfs = fig.add_subfigure(gs[3:, 4:])
-    # axs_ecfs = subfig_ecfs.subplots(4, 2, sharey=True)
-    # time_max, eval_t, ecfs_modeler, ecfs_curator = conn_comparison_2.recv()
-    # panel_ecfs(eval_t, ecfs_modeler, ecfs_curator, modeler_simdata.var_names, axs_ecfs)
-    # subfig_ecfs.text(0.5, 0.0, 'Transform variable', ha='center', va='bottom')
-    # subfig_ecfs.text(0.0, 1.0, 'D', ha='left', va='top', **label_kwargs)
-
-    # fig.get_layout_engine().set(h_pad=0.05)
 
     fig = plt.figure(figsize=(4.72, 4.72), constrained_layout=True)
     gs0 = fig.add_gridspec(2, 1, height_ratios=(3, 4))
@@ -193,8 +158,6 @@ def generate_figure(res_dir: str, output_dir: str = None, preview=False):
     subplot_kwargs = dict(
         wspace=0.001,
         hspace=0.001,
-        # bottom=0.25,
-        # top=0.75
     )
 
     # Top: Modeler trajectories (left) and error metric distribution (right) with increasing sample size (top to bottom)
@@ -210,9 +173,20 @@ def generate_figure(res_dir: str, output_dir: str = None, preview=False):
     subfig_trajectories.supxlabel('Time', fontsize=plt.rcParams['axes.labelsize'])
     subfig_trajectories.text(0.01, 0.99, 'A', ha='left', va='top', **label_kwargs)
 
+    annotations = [
+        dict(x=0.05 if sz < 1000 else 0.95,
+             y=0.8,
+             s=f'Sample size: {sz}', 
+             va='top', 
+             ha='left' if sz < 1000 else 'right',
+             fontsize=7,
+             bbox=dict(edgecolor='black', facecolor='white'))
+        for sz in sizes
+    ]
+
     subfig_error_distributions = fig.add_subfigure(gs_top[:, -1])
     axs_error_distributions = subfig_error_distributions.subplots(3, 1, sharex=True, gridspec_kw=subplot_kwargs)
-    panel_error_distributions(modeler_simdata, size_sel, axs_error_distributions)
+    panel_error_distributions(modeler_simdata, size_sel, annotations, axs_error_distributions)
     subfig_error_distributions.supxlabel('Error metric', fontsize=plt.rcParams['axes.labelsize'])
     subfig_error_distributions.text(0.01, 0.99, 'B', ha='left', va='top', **label_kwargs)
 
@@ -227,10 +201,17 @@ def generate_figure(res_dir: str, output_dir: str = None, preview=False):
     subfig_error_hist.text(0.01, 0.99, 'C', ha='left', va='top', **label_kwargs)
 
     # Bottom right: Modeler vs. Curator ECFs
+    xticks = [
+        [0, 2],
+        [0, 0.1],
+        [0, 0.1],
+        [0, 0.01]
+    ]
+
     subfig_ecfs = fig.add_subfigure(gs_bot[:, 1:])
     axs_ecfs = subfig_ecfs.subplots(4, 2, sharey=True, gridspec_kw=subplot_kwargs)
     time_max, eval_t, ecfs_modeler, ecfs_curator = conn_comparison_2.recv()
-    panel_ecfs(eval_t, ecfs_modeler, ecfs_curator, modeler_simdata.var_names, axs_ecfs)
+    panel_ecfs(eval_t, ecfs_modeler, ecfs_curator, modeler_simdata.var_names, xticks, axs_ecfs)
     subfig_ecfs.supxlabel('Transform variable', fontsize=plt.rcParams['axes.labelsize'])
     subfig_ecfs.text(0.01, 0.99, 'D', ha='left', va='top', **label_kwargs)
 
