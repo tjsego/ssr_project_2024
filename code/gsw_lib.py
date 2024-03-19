@@ -27,21 +27,22 @@ def _load_data(label_offset: int, num_entries: int, f_path: str, prefices) -> Op
     return res_label, prefix, np.asarray(d, dtype=float)
 
 
-def load_data(prefices: List[str], res_dir: str, label_offset: int = 0, num_entries=-1):
+def load_data(prefices: List[str], res_dir: str, label_offset: int = 0, num_entries=-1, pool=None):
     res_file_paths = [os.path.join(os.path.abspath(res_dir), f) for f in os.listdir(res_dir)]
-    num_workers = min(len(res_file_paths), mp.cpu_count())
+    if pool is None:
+        num_workers = min(len(res_file_paths), mp.cpu_count())
+        pool = mp.Pool(num_workers)
     
     obj_data = {p: dict() for p in prefices}
     num_steps = None
     
-    with mp.Pool(num_workers) as p:
-        for pool_data in p.starmap(_load_data, [(label_offset, num_entries, f_path, prefices) for f_path in res_file_paths]):
-            if pool_data is None:
-                continue
-            res_label, prefix, prefix_data = pool_data
-            obj_data[prefix][res_label] = prefix_data
-            if num_steps is None:
-                num_steps = prefix_data.shape[0]
+    for pool_data in pool.starmap(_load_data, [(label_offset, num_entries, f_path, prefices) for f_path in res_file_paths]):
+        if pool_data is None:
+            continue
+        res_label, prefix, prefix_data = pool_data
+        obj_data[prefix][res_label] = prefix_data
+        if num_steps is None:
+            num_steps = prefix_data.shape[0]
 
     rep_nums = list(obj_data[prefices[0]].keys())
     rep_nums.sort()
