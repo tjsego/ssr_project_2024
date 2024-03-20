@@ -36,8 +36,9 @@ val_types = {
 lib_pool: Optional[mp.Pool] = None
 
 
-def _seed_pool(*args, **kwargs):
-    seed = os.getpid()
+def _seed_pool(seed):
+    if seed is None:
+        seed = os.getpid()
     np.random.seed(seed)
     return seed
 
@@ -47,8 +48,7 @@ def start_pool(num_workers: int = None):
         num_workers = mp.cpu_count()
 
     global lib_pool
-    lib_pool = mp.Pool(num_workers)
-    return lib_pool.map(_seed_pool, [tuple()] * num_workers)
+    lib_pool = mp.Pool(num_workers, initializer=_seed_pool, initargs=[None])
 
 
 def get_pool():
