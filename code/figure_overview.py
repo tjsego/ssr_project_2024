@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 import multiprocessing as mp
 import numpy as np
 import os
+from typing import Dict, List, Tuple
 
 try:
     from .stochastic_tests import Test
@@ -22,7 +23,6 @@ plt.rcParams['figure.titlesize'] = 9.0
 plt.rcParams['savefig.dpi'] = 300
 plt.rcParams['lines.linewidth'] = 1.0
 plt.rcParams['lines.markersize'] = 1.0
-
 
 DEBUG = False
 
@@ -82,7 +82,7 @@ def _panel_sir(_test: Test, axs):
     trials_oi = _test.trials[-1] if not DEBUG else _test.trials[1]
     sims_s = _test.sims_s[trials_oi]
 
-    org = [(0, 0, 'S'), 
+    org = [(0, 0, 'S'),
            (0, 1, 'I'),
            (1, 0, 'R'),
            (1, 1, 'V')]
@@ -107,11 +107,12 @@ def panel_sir(_test: Test):
 
 def _panel_error_metric(_test: Test, ax):
     _test.generate_ecf_sampling_fits()
-    
+
     for i, data_f in enumerate(_test.ecf_sampling_fits[0]):
         if data_f is not None:
-            ax.plot(_test.trials, [Test.ecf_diff_fit_func(n, *data_f) for n in _test.trials], label=f'Sample size {_test.trials[i+1]}')
-    
+            ax.plot(_test.trials, [Test.ecf_diff_fit_func(n, *data_f) for n in _test.trials],
+                    label=f'Sample size {_test.trials[i + 1]}')
+
     avg = np.asarray([_test.ecf_sampling[t][0] for t in _test.trials], dtype=float)
     std = np.asarray([_test.ecf_sampling[t][1] for t in _test.trials], dtype=float)
     ax.errorbar(_test.trials, avg, yerr=std, color='black', marker='o', linestyle='none')
@@ -123,40 +124,71 @@ def _panel_error_metric(_test: Test, ax):
 
 def panel_error_metric(_test: Test):
     fig, ax = plt.subplots(1, 1, figsize=(2, 1.25), layout='compressed')
-    
+
     _panel_error_metric(_test, ax)
 
     return fig, ax
 
 
-def _panel_error_comparison(data, axs):
-    model_names = ['S', 'I', 'R', 'V']
-    results_data = {k: [float(d[k]) for d in data['results']] for k in model_names}
+class ComparisonData:
 
-    for i in range(len(model_names)):
-        axs[i].scatter(data['beta_fact'], results_data[model_names[i]])
+    def __init__(self,
+                 sample_size: int,
+                 beta_facts: List[float],
+                 var_names: List[str],
+                 self_sim_stats: Tuple[float, float],
+                 comparison_errors: List[float]):
+        self.sample_size = sample_size
+        self.beta_facts = beta_facts
+        self.var_names = var_names
+        self.comparison_errors = comparison_errors
+        self.self_sim_stats = self_sim_stats
+
+    @staticmethod
+    def load(fp: str):
+        with open(fp, 'r') as f:
+            data = json.load(f)
+
+        beta_facts = [float(f) for f in data['beta_facts']]
+        var_names = list(data['results'].keys())
+        comparison_errors_vars = {n: [] for n in var_names}
+        [[comparison_errors_vars[n].append(float(d[n])) for n in var_names] for d in data['comparison_error']]
+        comparison_errors = [max([v[i] for v in comparison_errors_vars.values()]) for i in range(len(beta_facts))]
+        return ComparisonData(sample_size=int(data['sample_size']),
+                              beta_facts=beta_facts,
+                              var_names=var_names,
+                              self_sim_stats=(np.average(data['self_sim_evals']), np.std(data['self_sim_evals'])),
+                              comparison_errors=comparison_errors)
+
+
+def _panel_error_comparison(data: Dict[int, ComparisonData], axs):
+    sizes = list(data.keys())
+    for i, sz in enumerate(sizes):
+        data_sz = data[sz]
+        axs[i].scatter(data_sz.beta_facts, data_sz.comparison_errors)
+        err = data_sz.self_sim_stats[1] * 3
+        axs[i].fill_between(data_sz.beta_facts, data_sz.self_sim_stats[0] - err, data_sz.self_sim_stats[0] + err,
+                            color='lightgray', alpha=0.5)
+    for i, sz in enumerate(sizes):
         axs[i].set_yscale('log')
         axs[i].set_xticks([0.5, 1.0, 1.5, 2.0])
         axs[i].set_yticks([1E-1, 1E0])
-        axs[i].set_title(model_names[i]).set_fontstyle('italic')
+        axs[i].set_title(f'Sample size: {sz}').set_fontstyle('italic')
+    axs[0].set_ylabel('Error metric')
 
 
-def panel_error_comparison(fp: str):
-    with open(fp, 'r') as f:
-        data = json.load(f)
-
+def panel_error_comparison(res_dir: str):
     fig, axs = plt.subplots(1, 4, figsize=(4.5, 0.75), sharey=True, layout='compressed')
-    
-    _panel_error_comparison(data, axs)
-    
+
+    _panel_error_comparison(load_comparison_data(res_dir), axs)
+
     return fig, axs
 
 
 def generate_panes(res_dir: str, output_dir: str = None):
-
     if output_dir is None:
         output_dir = os.path.dirname(__file__)
-    
+
     fp_coinfection = os.path.join(res_dir, 'coinfection.json')
     fp_lorentz = os.path.join(res_dir, 'lorentz.json')
     fp_sir = os.path.join(res_dir, 'sir.json')
@@ -164,11 +196,11 @@ def generate_panes(res_dir: str, output_dir: str = None):
     fig_coinfection, axs_coinfection = panel_coinfection(load_test(fp_coinfection))
     fig_coinfection.savefig(os.path.join(output_dir, 'coinfection.svg'))
     fig_coinfection.savefig(os.path.join(output_dir, 'coinfection.png'))
-    
+
     fig_lorentz, axs_lorentz = panel_lorentz(load_test(fp_lorentz))
     fig_lorentz.savefig(os.path.join(output_dir, 'lorentz.svg'))
     fig_lorentz.savefig(os.path.join(output_dir, 'lorentz.png'))
-    
+
     fig_sir, axs_sir = panel_sir(load_test(fp_sir))
     fig_sir.savefig(os.path.join(output_dir, 'sir.svg'))
     fig_sir.savefig(os.path.join(output_dir, 'sir.png'))
@@ -176,8 +208,8 @@ def generate_panes(res_dir: str, output_dir: str = None):
     fig_error_metric, axs_error_metric = panel_error_metric(load_test(fp_sir))
     fig_error_metric.savefig(os.path.join(output_dir, 'error_metric.svg'))
     fig_error_metric.savefig(os.path.join(output_dir, 'error_metric.png'))
-    
-    fig, axs = panel_error_comparison(os.path.join(res_dir, 'figure_overview_comparison_data.json'))
+
+    fig, axs = panel_error_comparison(os.path.join(res_dir, 'test_comparison'))
     print(os.path.join(output_dir, 'figure_overview_comparison_data.svg'))
     fig.savefig(os.path.join(output_dir, 'figure_overview_comparison_data.svg'))
     fig.savefig(os.path.join(output_dir, 'figure_overview_comparison_data.png'))
@@ -206,10 +238,10 @@ def generate_panes_par(res_dir: str, output_dir: str = None):
     with mp.Pool() as p:
         job = p.starmap_async(_worker_func, [(i, res_dir, output_dir) for i in range(len(_worker_data))])
 
-        fig, axs = panel_error_comparison(os.path.join(res_dir, 'figure_overview_comparison_data.json'))
+        fig, axs = panel_error_comparison(os.path.join(res_dir, 'test_comparison'))
         fig.savefig(os.path.join(output_dir, 'figure_overview_comparison_data.svg'))
         fig.savefig(os.path.join(output_dir, 'figure_overview_comparison_data.png'))
-        
+
         job.wait()
 
 
@@ -217,10 +249,16 @@ def _load_test(fname: str, fp: str):
     return fname, Test.load(fp)
 
 
-def _load_comparison_data(fp: str, conn):
-    with open(fp, 'r') as f:
-        data = json.load(f)
-    conn.send(data)
+def load_comparison_data(res_dir: str):
+    res_sizes_names = {int(f.replace('test_comparison_', '').replace('.json', '')): f
+                       for f in os.listdir(res_dir) if 'test_comparison_' in f and f.endswith('.json')}
+    res_sizes = list(res_sizes_names.keys())
+    res_sizes.sort()
+    return {sz: ComparisonData.load(os.path.join(res_dir, res_sizes_names[sz])) for sz in res_sizes}
+
+
+def _load_comparison_data(res_dir: str, conn):
+    conn.send(load_comparison_data(res_dir))
 
 
 def generate_figure(res_dir: str, output_dir: str = None, preview=False):
@@ -230,7 +268,7 @@ def generate_figure(res_dir: str, output_dir: str = None, preview=False):
     print('Loading data:', res_dir)
 
     p_conn_1, p_conn_2 = mp.Pipe()
-    p_data = mp.Process(target=_load_comparison_data, args=[os.path.join(res_dir, 'figure_overview_comparison_data.json'), p_conn_1])
+    p_data = mp.Process(target=_load_comparison_data, args=[os.path.join(res_dir, 'test_comparison'), p_conn_1])
     p_data.start()
 
     results_names = ['coinfection', 'lorentz', 'sir']
@@ -240,13 +278,10 @@ def generate_figure(res_dir: str, output_dir: str = None, preview=False):
         for fname, test in p.starmap(_load_test, [(rn, os.path.join(res_dir, rn + '.json')) for rn in results_names]):
             tests[fname] = test
 
-    figure_overview_comparison_data = p_conn_2.recv()
-    p_data.close()
-    
     print('Generating plot...')
-    
+
     fig = plt.figure(figsize=(4.72, 4.72), layout='constrained')
-    gs = fig.add_gridspec(5, 5)
+    gs = fig.add_gridspec(5, 5, height_ratios=(1, 1, 1, 1, 2))
 
     label_kwargs = dict(
         fontsize=10,
@@ -286,7 +321,9 @@ def generate_figure(res_dir: str, output_dir: str = None, preview=False):
 
     print('... panel: error comparison')
     subfig_error_comparison = fig.add_subfigure(gs[-1, :])
-    ax_error_comparison = subfig_error_comparison.subplots(1, 4, sharey=True, gridspec_kw=subplot_kwargs)
+    ax_error_comparison = subfig_error_comparison.subplots(1, 3, sharey=True, gridspec_kw=subplot_kwargs)
+    figure_overview_comparison_data = p_conn_2.recv()
+    p_data.close()
     _panel_error_comparison(figure_overview_comparison_data, ax_error_comparison)
     subfig_error_comparison.text(0.01, 0.99, 'E', ha='left', va='top', **label_kwargs)
     subfig_error_comparison.supxlabel('Parameter ratio', fontsize=plt.rcParams['axes.labelsize'])
@@ -300,17 +337,16 @@ def generate_figure(res_dir: str, output_dir: str = None, preview=False):
 
 
 class ArgParse(argparse.ArgumentParser):
-    
+
     def __init__(self):
-        
         super().__init__()
-        
+
         self.add_argument('-r', '--res-dir',
                           required=True,
                           type=str,
                           dest='res_dir',
                           help='Absolute path to the directory containing results')
-        
+
         self.add_argument('-o', '--output-dir',
                           required=False,
                           type=str,
@@ -335,13 +371,13 @@ class ArgParse(argparse.ArgumentParser):
                           action='store_true',
                           help='Preview generated figure',
                           dest='preview')
-        
+
         self.add_argument('-d', '--debug',
                           required=False,
                           action='store_true',
                           help='Run in debug mode (faster)',
                           dest='debug')
-        
+
         self.parsed_args = self.parse_args()
 
     @property
