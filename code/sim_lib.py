@@ -100,7 +100,7 @@ if has_numba:
 
 
 def round_arr_to_sigfigs(_vals: np.ndarray, _sigfigs: int):
-    result = np.zeros_like(_vals, dtype=float)
+    result = np.zeros_like(_vals)
     result_r = result.ravel()
     _vals_r = _vals.ravel()
     for i in range(_vals_r.shape[0]):
