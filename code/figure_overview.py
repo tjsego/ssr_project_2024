@@ -10,10 +10,14 @@ try:
 except ImportError:
     from stochastic_tests import Test
 
+plt.rcParams['axes.labelpad'] = 2.0
+plt.rcParams['axes.labelsize'] = 8.0
 plt.rcParams['font.sans-serif'] = 'Arial'
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.size'] = 8.0
+plt.rcParams['figure.constrained_layout.h_pad'] = 0.02
 # plt.rcParams['figure.edgecolor'] = 'black'
+plt.rcParams['figure.labelsize'] = 8.0
 plt.rcParams['figure.titlesize'] = 9.0
 plt.rcParams['savefig.dpi'] = 300
 plt.rcParams['lines.linewidth'] = 1.0
@@ -248,42 +252,48 @@ def generate_figure(res_dir: str, output_dir: str = None, preview=False):
         fontsize=10,
         fontproperties={'weight': 'bold'}
     )
+    subplot_kwargs = dict(
+        wspace=0.001,
+        hspace=0.001,
+    )
 
     print('... panel: coinfection')
     subfig_coinfection = fig.add_subfigure(gs[0, :])
-    axs_coinfection = subfig_coinfection.subplots(1, 5)
+    axs_coinfection = subfig_coinfection.subplots(1, 5, gridspec_kw=subplot_kwargs)
     _panel_coinfection(tests['coinfection'], axs_coinfection)
-    subfig_coinfection.text(0.01, 0.85, 'A', **label_kwargs)
+    subfig_coinfection.text(0.01, 0.99, 'A', ha='left', va='top', **label_kwargs)
+    subfig_coinfection.supxlabel('Time', fontsize=plt.rcParams['axes.labelsize'])
 
     print('... panel: lorentz')
     subfig_lorentz = fig.add_subfigure(gs[1, :])
-    axs_lorentz = subfig_lorentz.subplots(1, 3)
+    axs_lorentz = subfig_lorentz.subplots(1, 3, gridspec_kw=subplot_kwargs)
     _panel_lorentz(tests['lorentz'], axs_lorentz)
-    subfig_lorentz.text(0.01, 0.95, 'B', **label_kwargs)
+    subfig_lorentz.text(0.01, 0.99, 'B', ha='left', va='top', **label_kwargs)
+    subfig_lorentz.supxlabel('Time', fontsize=plt.rcParams['axes.labelsize'])
 
     print('... panel: sir')
     subfig_sir = fig.add_subfigure(gs[2:4, 0:3])
-    axs_sir = subfig_sir.subplots(2, 2, sharex=True)
+    axs_sir = subfig_sir.subplots(2, 2, sharex=True, gridspec_kw=subplot_kwargs)
     _panel_sir(tests['sir'], axs_sir)
-    subfig_sir.text(0.01, 0.95, 'C', **label_kwargs)
+    subfig_sir.text(0.01, 0.99, 'C', ha='left', va='top', **label_kwargs)
+    subfig_sir.supxlabel('Time', fontsize=plt.rcParams['axes.labelsize'])
 
     print('... panel: error metric')
     subfig_error_metric = fig.add_subfigure(gs[2:4, 3:])
     ax_error_metric = subfig_error_metric.subplots(1, 1)
     _panel_error_metric(tests['sir'], ax_error_metric)
-    subfig_error_metric.text(0.01, 0.95, 'D', **label_kwargs)
+    subfig_error_metric.text(0.01, 0.99, 'D', ha='left', va='top', **label_kwargs)
 
     print('... panel: error comparison')
     subfig_error_comparison = fig.add_subfigure(gs[-1, :])
-    ax_error_comparison = subfig_error_comparison.subplots(1, 4, sharey=True)
-    subfig_error_comparison.suptitle('Parameter ratio', y=0.1, verticalalignment='top')
+    ax_error_comparison = subfig_error_comparison.subplots(1, 4, sharey=True, gridspec_kw=subplot_kwargs)
     _panel_error_comparison(figure_overview_comparison_data, ax_error_comparison)
-    subfig_error_comparison.text(0.01, 0.95, 'E', **label_kwargs)
-    
-    fig.get_layout_engine().set(h_pad=0.1)
+    subfig_error_comparison.text(0.01, 0.99, 'E', ha='left', va='top', **label_kwargs)
+    subfig_error_comparison.supxlabel('Parameter ratio', fontsize=plt.rcParams['axes.labelsize'])
 
     if preview:
         fig.show()
+        plt.show(block=True)
     else:
         fig.savefig(os.path.join(output_dir, 'figure_overview.png'))
         fig.savefig(os.path.join(output_dir, 'figure_overview.svg'))
