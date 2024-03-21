@@ -2,7 +2,6 @@ import argparse
 import json
 from matplotlib import pyplot as plt
 from matplotlib import gridspec
-from matplotlib import transforms as mtransforms
 import multiprocessing as mp
 import os
 from typing import List
@@ -11,10 +10,12 @@ import sim_lib
 from sim_2_curator_py import CuratorAnalysis
 from sim_2_modeler_py import SimulationReport
 
+plt.rcParams['axes.labelpad'] = 2.0
 plt.rcParams['axes.labelsize'] = 8.0
 plt.rcParams['font.sans-serif'] = 'Arial'
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.size'] = 8.0
+plt.rcParams['figure.constrained_layout.h_pad'] = 0.02
 # plt.rcParams['figure.edgecolor'] = 'black'
 plt.rcParams['figure.titlesize'] = 9.0
 plt.rcParams['savefig.dpi'] = 300
@@ -214,8 +215,6 @@ def generate_figure(res_dir: str, output_dir: str = None, preview=False):
     panel_ecfs(eval_t, ecfs_modeler, ecfs_curator, modeler_simdata.var_names, xticks, axs_ecfs)
     subfig_ecfs.supxlabel('Transform variable', fontsize=plt.rcParams['axes.labelsize'])
     subfig_ecfs.text(0.01, 0.99, 'D', ha='left', va='top', **label_kwargs)
-
-    # fig.get_layout_engine().set(h_pad=0.1)
 
     if preview:
         fig.show()
