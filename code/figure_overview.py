@@ -281,7 +281,7 @@ def generate_figure(res_dir: str, output_dir: str = None, preview=False):
     print('Generating plot...')
 
     fig = plt.figure(figsize=(4.72, 4.72), layout='constrained')
-    gs = fig.add_gridspec(5, 5, height_ratios=(1, 1, 1, 1, 2))
+    gs = fig.add_gridspec(5, 5, height_ratios=(1, 1, 1, 1, 1))
 
     label_kwargs = dict(
         fontsize=10,
@@ -325,7 +325,7 @@ def generate_figure(res_dir: str, output_dir: str = None, preview=False):
     figure_overview_comparison_data = p_conn_2.recv()
     p_data.close()
     _panel_error_comparison(figure_overview_comparison_data, ax_error_comparison)
-    subfig_error_comparison.text(0.01, 0.99, 'E', ha='left', va='top', **label_kwargs)
+    subfig_error_comparison.text(0.03, 0.99, 'E', ha='left', va='top', **label_kwargs)
     subfig_error_comparison.supxlabel('Parameter ratio', fontsize=plt.rcParams['axes.labelsize'])
 
     if preview:
