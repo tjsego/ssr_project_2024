@@ -101,6 +101,18 @@ class CuratorAnalysis:
                     self.err_max[name] = err_i
         return self.err_max
 
+    def pval(self, modeler_metadata: sim_lib.Metadata):
+        
+        self.compare(modeler_metadata)
+        err_max = max(self.err_max.values())
+        err_avg = np.average(self.ks_stats_samp)
+        if err_max < err_avg:
+            return 1.0
+        q2 = (modeler_metadata.sample_size + 1) / modeler_metadata.sample_size * np.var(self.ks_stats_samp, ddof=1)
+        lam2 = (err_max - err_avg) * (err_max - err_avg) / q2
+        pr = np.floor((modeler_metadata.sample_size + 1) / modeler_metadata.sample_size * ((modeler_metadata.sample_size - 1) / lam2 + 1)) / (modeler_metadata.sample_size + 1)
+        return min(1.0, pr)
+
 
 def generate_analysis(modeler_metadata: sim_lib.Metadata,
                       curator_res_dir: str,
