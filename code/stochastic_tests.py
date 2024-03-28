@@ -24,6 +24,7 @@ class Test:
                  sample_times: List[float],
                  trials: List[int],
                  stochastic: bool = False,
+                 num_var_steps: int = None,
                  num_var_pers: int = None):
         
         self.model = model
@@ -32,6 +33,7 @@ class Test:
         self.sample_times = sample_times
         self.trials = trials
         self.stochastic = stochastic
+        self.num_var_steps = num_var_steps
         self.num_var_pers = num_var_pers
 
         # Results
@@ -83,6 +85,9 @@ class Test:
                          trials=self.trials,
                          stochastic=self.stochastic)
 
+        if self.num_var_steps is not None:
+            json_data['num_var_steps'] = self.num_var_steps
+
         if self.num_var_pers is not None:
             json_data['num_var_pers'] = self.num_var_pers
 
@@ -129,6 +134,9 @@ class Test:
                       sample_times=[float(f) for f in json_data['sample_times']],
                       trials=[int(i) for i in json_data['trials']],
                       stochastic=bool(json_data['stochastic']))
+
+        if 'num_var_steps' in json_data.keys():
+            result.num_var_steps = int(json_data['num_var_steps'])
 
         if 'num_var_pers' in json_data.keys():
             result.num_var_pers = int(json_data['num_var_pers'])
@@ -215,6 +223,7 @@ class Test:
             self.sample_times, 
             self.model.results_names, 
             self.trials, 
+            num_steps=self.num_var_steps,
             num_var_pers=self.num_var_pers,
             num_workers=num_workers, 
             quiet=quiet
