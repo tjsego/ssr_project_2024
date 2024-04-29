@@ -174,7 +174,7 @@ DEF_EVAL_NUM_ITER = 2.0
 DEF_NUM_VAR_PERS = 5
 
 
-def get_eval_info_times(ecf_eval_info: ECFEvalInfo, stagger=True):
+def get_eval_info_times(ecf_eval_info: ECFEvalInfo, stagger=False):
     if not stagger:
         return np.arange(0.0, ecf_eval_info[1] * (1 + 1 / ecf_eval_info[0]), ecf_eval_info[1] / ecf_eval_info[0])
     
