@@ -88,6 +88,8 @@ def plot_selfsim(axs, metadata):
         axs[i].set_yscale('log')
         axs[i].set_title(impl_name).set_fontstyle('italic')
 
+    axs[0].set_ylabel('Error metric')
+
 
 def plot_comparison(axs, metadata):
     plot_scenarios = [
