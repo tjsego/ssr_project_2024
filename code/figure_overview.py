@@ -119,7 +119,7 @@ def _panel_error_metric(_test: Test, ax):
     ax.set_xscale('log')
     ax.set_yscale('log')
     ax.set_xlabel('Sample size')
-    ax.set_ylabel('Error metric')
+    ax.set_ylabel('EFECT error')
 
 
 def panel_error_metric(_test: Test):
@@ -174,7 +174,7 @@ def _panel_error_comparison(data: Dict[int, ComparisonData], axs):
         axs[i].set_xticks([0.5, 1.0, 1.5, 2.0])
         axs[i].set_yticks([1E-1, 1E0])
         axs[i].set_title(f'Sample size: {sz}').set_fontstyle('italic')
-    axs[0].set_ylabel('Error metric')
+    axs[0].set_ylabel('EFECT error')
 
 
 def panel_error_comparison(res_dir: str):
@@ -313,7 +313,7 @@ def generate_figure(res_dir: str, output_dir: str = None, preview=False):
     subfig_sir.text(0.01, 0.99, 'C', ha='left', va='top', **label_kwargs)
     subfig_sir.supxlabel('Time', fontsize=plt.rcParams['axes.labelsize'])
 
-    print('... panel: error metric')
+    print('... panel: EFECT error')
     subfig_error_metric = fig.add_subfigure(gs[2:4, 3:])
     ax_error_metric = subfig_error_metric.subplots(1, 1)
     _panel_error_metric(tests['sir'], ax_error_metric)

@@ -88,7 +88,7 @@ def plot_selfsim(axs, metadata):
         axs[i].set_yscale('log')
         axs[i].set_title(impl_name).set_fontstyle('italic')
 
-    axs[0].set_ylabel('Error metric')
+    axs[0].set_ylabel('EFECT error')
 
 
 def plot_comparison(axs, metadata):
@@ -117,7 +117,7 @@ def plot_comparison(axs, metadata):
         axs[i].set_yticks([], minor=True)
         axs[i].set_title(f'{ps[0]}/{ps[1]}').set_fontstyle('italic')
     
-    axs[0].set_ylabel('Error metric')
+    axs[0].set_ylabel('EFECT error')
 
 
 def generate_figure(results_dir: str, output_dir: str = None, preview=False):

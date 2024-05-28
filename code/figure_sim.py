@@ -96,7 +96,7 @@ def panel_error_distributions(report: SimulationReport,
                               axs):
     for i, size_idx in enumerate(size_sel):
         axs[i].hist(report.ks_stats_samp_hist[size_idx], density=True)
-    axs[0].set_title('Error metric density').set_fontstyle('italic')
+    axs[0].set_title('EFECT error density').set_fontstyle('italic')
 
     for i, annot in enumerate(annotations):
         axs[i].text(transform=axs[i].transAxes, **annot)
@@ -116,7 +116,7 @@ def panel_error_hist(report: SimulationReport, ax):
     ax.set_xscale('log')
     ax.set_yscale('log')
     ax.set_xlabel('Sample size')
-    ax.set_ylabel('Error metric')
+    ax.set_ylabel('EFECT error')
 
 
 def panel_ecfs(eval_t, ecfs_modeler, ecfs_curator, var_names: List[str], xticks, axs):
@@ -161,7 +161,7 @@ def generate_figure(res_dir: str, output_dir: str = None, preview=False):
         hspace=0.001,
     )
 
-    # Top: Modeler trajectories (left) and error metric distribution (right) with increasing sample size (top to bottom)
+    # Top: Modeler trajectories (left) and EFECT error distribution (right) with increasing sample size (top to bottom)
     size_sel = [0, 3, 4]
     gs_top = gridspec.GridSpecFromSubplotSpec(len(size_sel),
                                               len(modeler_simdata.var_names)+1, 
@@ -188,10 +188,10 @@ def generate_figure(res_dir: str, output_dir: str = None, preview=False):
     subfig_error_distributions = fig.add_subfigure(gs_top[:, -1])
     axs_error_distributions = subfig_error_distributions.subplots(3, 1, sharex=True, gridspec_kw=subplot_kwargs)
     panel_error_distributions(modeler_simdata, size_sel, annotations, axs_error_distributions)
-    subfig_error_distributions.supxlabel('Error metric', fontsize=plt.rcParams['axes.labelsize'])
+    subfig_error_distributions.supxlabel('EFECT error', fontsize=plt.rcParams['axes.labelsize'])
     subfig_error_distributions.text(0.01, 0.99, 'B', ha='left', va='top', **label_kwargs)
 
-    # Bottom left: Modeler error metric vs. sample size
+    # Bottom left: Modeler EFECT error vs. sample size
     gs_bot = gridspec.GridSpecFromSubplotSpec(len(modeler_simdata.var_names),
                                               3,
                                               subplot_spec=gs0[1],
