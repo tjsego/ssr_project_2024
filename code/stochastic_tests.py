@@ -205,7 +205,7 @@ class Test:
                 for t in self.trials}
         for t, sim in self.sims_s.items():
             if label is not None:
-                label.value = f'Evaluating {t} trials...'
+                label.value = f'Evaluating sample size {t}...'
             sim.execute_p()
 
     def measure_dist_diff_basic(self, filter: float = 0.0, progress_bar=None):
@@ -259,7 +259,7 @@ class Test:
         self.ks_stats_sampling = {}
         for t in self.trials:
             if quiet is not None and not quiet:
-                print(f'Testing {t} trials')
+                print(f'Testing sample size {t}')
             self.ks_stats_sampling[t] = sr.test_sampling(self.sims_s[t].results, **kwargs)[0]
             self.ecf_sampling[t] = np.average(self.ks_stats_sampling[t]), np.std(self.ks_stats_sampling[t])
 
@@ -362,7 +362,7 @@ class Test:
         fig, ax = plt.subplots(len(self.trials), len(self.model.results_names), sharex=True, figsize=(3 * len(self.model.results_names), 2 * len(self.trials)), layout='compressed')
         for i, t in enumerate(self.trials):
             plot_comp(self.model, ax, self.sims_s[t], i, self.sim_d if plot_det else None)
-            ax[i][0].set_ylabel(f'{t} trials')
+            ax[i][0].set_ylabel(f'Sample size {t}')
         for j in range(len(self.model.results_names)):
             ax[-1][j].set_xlabel('Time')
         return fig, ax
@@ -386,7 +386,7 @@ class Test:
                     flat_res.extend(res)
 
                 ax[j][i].hist2d(flat_time, flat_res, density=True, bins=(len(self.sims_s[self.trials[0]].time), 10))
-            ax[j][0].set_ylabel(f'{trial} trials')
+            ax[j][0].set_ylabel(f'Sample size {trial}')
         for i, name in enumerate(self.model.results_names):
             ax[0][i].set_title(name)
             ax[-1][i].set_xlabel('Time')
@@ -420,8 +420,8 @@ class Test:
 
             ax[0][i].hist2d(flat_time1, flat_res1, density=True, bins=(len(self.sims_s[trial].time), num_bins))
             ax[1][i].hist2d(flat_time2, flat_res2, density=True, bins=(len(self.sims_s[trial].time), num_bins))
-        ax[0][0].set_ylabel(f'{trial} trials: Set 1')
-        ax[1][0].set_ylabel(f'{trial} trials: Set 2')
+        ax[0][0].set_ylabel(f'Sample size {trial}: Set 1')
+        ax[1][0].set_ylabel(f'Sample size {trial}: Set 2')
         for i, name in enumerate(self.model.results_names):
             ax[0][i].set_title(name)
             ax[-1][i].set_xlabel('Time')
@@ -435,7 +435,7 @@ class Test:
             ax[i].scatter(acc_diff[name].keys(), acc_diff[name].values())
             ax[i].set_title(name)
             ax[i].set_xscale('log')
-            ax[i].set_xlabel('No. trials')
+            ax[i].set_xlabel('Sample size')
             ax[i].set_ylim(-0.05, max(1, 1.05 * max(acc_diff[name].values())))
 
         max_val = -1.0
@@ -459,8 +459,8 @@ class Test:
                 ax1[j][i].imshow(corr, vmin=-1, vmax=1)
                 ax2[j][i].plot(corrMax)
                 ax2[j][i].set_ylim(-1.1, 1.1)
-            ax1[j][0].set_ylabel(f'{trial} trials')
-            ax2[j][0].set_ylabel(f'{trial} trials')
+            ax1[j][0].set_ylabel(f'Sample size {trial}')
+            ax2[j][0].set_ylabel(f'Sample size {trial}')
         for i, name in enumerate(self.model.results_names):
             ax1[0][i].set_title(name)
             ax2[0][i].set_title(name)
@@ -485,11 +485,14 @@ class Test:
         for trial in self.trials:
             idx = self.sims_s[trial].get_time_index(time)
             for j, name in enumerate(self.model.results_names):
+                ecfs = self.ecf[trial][idx][name]
                 if eval_times_override is None:
-                    eval_times = sr.get_eval_info_times(self.ecf_eval_info[trial][idx][name])
+                    eval_times = sr.get_eval_info_times((ecfs.shape[0], self.ecf_eval_info[trial][idx][name][1]))
+                    # Handle erroneous rounding issue
+                    if eval_times.shape[0] > ecfs.shape[0]:
+                        eval_times = eval_times[:ecfs.shape[0]]
                 else:
                     eval_times = eval_times_override[name]
-                ecfs = self.ecf[trial][idx][name]
                 ax[0][j].plot(eval_times, ecfs[:, 0], label=f'Trials: {trial}')
                 ax[1][j].plot(eval_times, ecfs[:, 1], label=f'Trials: {trial}')
 
@@ -514,11 +517,11 @@ class Test:
             ax = fig.subplots(*args)
         for i, name in enumerate(self.model.results_names):
             ax[i].scatter(self.trials, [self.ecf_diff[trial][name] for trial in self.trials])
-            ax[i].set_xlabel('No. trials')
+            ax[i].set_xlabel('Sample size')
             ax[i].set_xscale('log')
             ax[i].set_yscale('log')
             ax[i].set_title(name)
-        ax[0].set_ylabel('K-S statistic')
+        ax[0].set_ylabel('EFECT error')
         fig.suptitle('Measure of difference between empirical characteristic functions')
 
         return fig, ax
@@ -537,12 +540,12 @@ class Test:
         avg = np.asarray([self.ecf_sampling[t][0] for t in self.trials], dtype=float)
         std = np.asarray([self.ecf_sampling[t][1] for t in self.trials], dtype=float)
         ax.errorbar(self.trials, avg, yerr=std, marker='o', linestyle='none')
-        ax.set_xlabel('No. trials')
-        ax.set_ylabel('K-S statistic')
+        ax.set_xlabel('Sample size')
+        ax.set_ylabel('EFECT error')
         ax.set_xscale('log')
         ax.set_yscale('log')
 
-        fig.suptitle('Sample self-similarity K-S test statistic')
+        fig.suptitle('Test for reproducibility EFECT error')
 
         return fig, ax
 
@@ -620,8 +623,8 @@ class Test:
             ax = axs[i]
             ax.hist(self.ks_stats_sampling[t], density=True)
             ax.set_ylabel(f'Sample size {t}')
-        axs[-1].set_xlabel('K-S statistics')
-        fig.suptitle('K-S statistic density plots')
+        axs[-1].set_xlabel('EFECT error')
+        fig.suptitle('EFECT error density plots')
         return fig, axs
 
     def plot_stats(self, fig_axs=None):
