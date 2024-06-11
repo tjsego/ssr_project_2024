@@ -376,7 +376,7 @@ class Test:
         if self.sims_s is None:
             raise RuntimeError
 
-        fig, _ax = plt.subplots(len(self.trials), len(self.model.results_names), figsize=(12.0, 2.0 * len(self.trials)), sharex=True, layout='compressed')
+        fig, _ax = plt.subplots(len(self.trials), len(self.model.results_names), figsize=(3 * len(self.model.results_names), 2.0 * len(self.trials)), sharex=True, layout='compressed')
         ax = _ax if len(self.trials) > 1 else [_ax]
         if len(self.model.results_names) == 1:
             axt = ax
