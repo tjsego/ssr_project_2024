@@ -359,19 +359,28 @@ class Test:
         if self.sims_s is None:
             raise RuntimeError
 
-        fig, ax = plt.subplots(len(self.trials), len(self.model.results_names), sharex=True, figsize=(3 * len(self.model.results_names), 2 * len(self.trials)), layout='compressed')
+        fig, _ax = plt.subplots(len(self.trials), len(self.model.results_names), sharex=True, figsize=(3 * len(self.model.results_names), 2 * len(self.trials)), layout='compressed')
+        ax = _ax if len(self.trials) > 1 else [_ax]
+        if len(self.model.results_names) == 1:
+            axt = ax
+            ax = [[axtt] for axtt in axt]
+
         for i, t in enumerate(self.trials):
             plot_comp(self.model, ax, self.sims_s[t], i, self.sim_d if plot_det else None)
             ax[i][0].set_ylabel(f'Sample size {t}')
         for j in range(len(self.model.results_names)):
             ax[-1][j].set_xlabel('Time')
-        return fig, ax
+        return fig, _ax
 
     def plot_distributions(self):
         if self.sims_s is None:
             raise RuntimeError
 
-        fig, ax = plt.subplots(len(self.trials), len(self.model.results_names), figsize=(12.0, 2.0 * len(self.trials)), sharex=True, layout='compressed')
+        fig, _ax = plt.subplots(len(self.trials), len(self.model.results_names), figsize=(3 * len(self.model.results_names), 2.0 * len(self.trials)), sharex=True, layout='compressed')
+        ax = _ax if len(self.trials) > 1 else [_ax]
+        if len(self.model.results_names) == 1:
+            axt = ax
+            ax = [[axtt] for axtt in axt]
 
         for j, trial in enumerate(self.trials):
             for i, name in enumerate(self.model.results_names):
@@ -390,7 +399,7 @@ class Test:
         for i, name in enumerate(self.model.results_names):
             ax[0][i].set_title(name)
             ax[-1][i].set_xlabel('Time')
-        return fig, ax
+        return fig, _ax
 
     def plot_distributions_compare(self, trial: int, num_bins: int = 10):
         if self.sims_s is None:
