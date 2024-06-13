@@ -220,7 +220,6 @@ class Test:
     def find_ecfs(self, num_workers: int = None, quiet=True):
         self.ecf, self.ecf_ks_stat, self.ecf_eval_info = sr.find_ecfs(
             self.sims_s, 
-            self.sample_times, 
             self.model.results_names, 
             self.trials, 
             num_steps=self.num_var_steps,

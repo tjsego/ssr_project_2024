@@ -176,7 +176,10 @@ DEF_NUM_VAR_PERS = 5
 
 def get_eval_info_times(ecf_eval_info: ECFEvalInfo, stagger=False):
     if not stagger:
-        return np.arange(0.0, ecf_eval_info[1] * (1 + 1 / ecf_eval_info[0]), ecf_eval_info[1] / ecf_eval_info[0])
+        result = np.linspace(0.0, ecf_eval_info[1], ecf_eval_info[0])
+        if result.shape[0] != ecf_eval_info[0]:
+            raise ValueError(f'{result.shape[0]}, {ecf_eval_info[0]}')
+        return result
     
     n = ecf_eval_info[0]
     idx = np.asarray(list(range(n+1)))
@@ -620,7 +623,6 @@ def measure_dist_diff(sims,
                       sample_times, 
                       results_names, 
                       trials, 
-                      num_bins=10,
                       filter: float = 0.0, 
                       comparator='abs_rel_diff',
                       num_workers: int = None, 
@@ -800,16 +802,16 @@ def _find_ecfs(_results: Dict[str, np.ndarray],
 
 
 def find_ecfs(_sims: Dict[int, SimSet], 
-              sample_times: List[float], 
               results_names: List[str], 
               trials: List[int], 
               num_steps: int = None,
               num_var_pers: int = None,
               num_workers: int = None,
               quiet: bool = True):
-    result_ecf = {trial: [{} for _ in sample_times] for trial in trials}
-    result_ks_stat = {trial: [{} for _ in sample_times] for trial in trials}
-    eval_info = {t: [{} for _ in sample_times] for t in trials}
+    sample_times = {trial: _sims[trial].results_time for trial in trials}
+    result_ecf = {trial: [{} for _ in sample_times[trial]] for trial in trials}
+    result_ks_stat = {trial: [{} for _ in sample_times[trial]] for trial in trials}
+    eval_info = {t: [{} for _ in sample_times[t]] for t in trials}
 
     if num_steps is None:
         num_steps = DEF_EVAL_NUM
@@ -818,7 +820,7 @@ def find_ecfs(_sims: Dict[int, SimSet],
 
     input_args = []
     for trial in trials:
-        for i, t in enumerate(sample_times):
+        for i, t in enumerate(sample_times[trial]):
             idx = _sims[trial].get_time_index(t)
             input_args.append((
                 {n: _sims[trial].results[n].T[idx, :] for n in results_names},
@@ -858,12 +860,12 @@ def _generate_ecfs(trial, name, t_num, t_fin, idx, res):
 
 
 def generate_ecfs(_sims: Dict[int, SimSet], 
-                  sample_times: List[float], 
                   results_names: List[str], 
                   trials: List[int], 
                   ecf_eval_info: Dict[int, List[Dict[str, ECFEvalInfo]]] = None):
+    sample_times = {trial: _sims[trial].results_time for trial in trials}
     if ecf_eval_info is None:
-        ecf_eval_info = {t: [{n: (DEF_EVAL_NUM, DEF_EVAL_FIN) for n in results_names} for _ in sample_times] for t in trials}
+        ecf_eval_info = {t: [{n: (DEF_EVAL_NUM, DEF_EVAL_FIN) for n in results_names} for _ in sample_times[t]] for t in trials}
 
     result = {trial: [{name: np.ndarray((ecf_eval_info[trial][i][name][0], 2)) for name in results_names} 
                       for i in range(len(sample_times))] 
@@ -872,7 +874,7 @@ def generate_ecfs(_sims: Dict[int, SimSet],
     input_args = []
     for trial in trials:
         for name in results_names:
-            for k, sample_time in enumerate(sample_times):
+            for k, sample_time in enumerate(sample_times[trial]):
                 input_args.append((
                     trial, name, ecf_eval_info[trial][k][name][0], ecf_eval_info[trial][k][name][1], k, _sims[trial].extract_var_time(name, sample_time)
                 ))
