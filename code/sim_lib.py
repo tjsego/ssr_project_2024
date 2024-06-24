@@ -17,9 +17,11 @@ from typing import Dict, List, Optional, Tuple
 # Numba seems to only behave well on Windows
 if sys.platform.startswith('darwin') or sys.platform.startswith('linux'):
     has_numba = False
+    prange = range
 else:
     import numba
     has_numba = True
+    prange = numba.prange
 
 
 known_sim_algs = [
@@ -361,15 +363,17 @@ if has_numba:
 def _ecf_ks_stat(results: np.ndarray,
                  num_steps: int,
                  num_var_pers: int):
-    if np.std(results) == 0.0:
+    res_std = np.std(results)
+    if res_std == 0.0:
         incr_max = 1 / num_steps
         ks_stat = 0.0
     else:
 
-        incr_max = 2 * num_var_pers * np.pi / np.std(results) / num_steps
+        eval_t_fin = 2 * num_var_pers * np.pi / res_std
+        incr_max = eval_t_fin / num_steps
 
-        eval_pts = _ecf_eval_pts(num_steps, incr_max)
-        n = int(results.shape[0] / 2)
+        eval_pts = get_eval_info_times(num_steps, eval_t_fin)
+        n = results.shape[0] // 2
         ecf1 = ecf(results[:n], eval_pts)
         ecf2 = ecf(results[n:], eval_pts)
         ks_stat = ecf_compare(ecf1, ecf2)
@@ -381,16 +385,31 @@ if has_numba:
     _ecf_ks_stat = numba.njit(_ecf_ks_stat)
 
 
-def get_eval_info_times(_eval_num: int, _eval_fin: float, stagger=True):
-    if not stagger:
-        return np.arange(0.0, _eval_fin * (1 + 1 / _eval_num), _eval_fin / _eval_num)
-    
-    idx = np.asarray(list(range(_eval_num+1)))
-    h = _eval_fin / _eval_num
-    mask = np.mod(idx, 2) != 0
-    result = idx * h
-    result[mask] += ((idx[mask] + 1) * 2 / (_eval_num + 2) - 1) * h
-    return result
+def _ecf_ks_stat_s(results: np.ndarray,
+                   num_steps: int,
+                   num_var_pers: int):
+    res_std = np.std(results)
+    if res_std == 0.0:
+        ks_stat = 0.0
+    else:
+
+        eval_t_fin = 2 * num_var_pers * np.pi / res_std
+
+        eval_pts = get_eval_info_times(num_steps, eval_t_fin)
+        n = results.shape[0] // 2
+        ecf1 = ecf(results[:n], eval_pts)
+        ecf2 = ecf(results[n:], eval_pts)
+        ks_stat = ecf_compare(ecf1, ecf2)
+
+    return ks_stat
+
+
+if has_numba:
+    _ecf_ks_stat_s = numba.njit(_ecf_ks_stat_s)
+
+
+def get_eval_info_times(_eval_num: int, _eval_fin: float):
+    return np.linspace(0.0, _eval_fin, _eval_num)
 
 
 if has_numba:
@@ -474,17 +493,51 @@ def recommend(trials, outcomes, target_outcome):
 
 
 def _test_sampling_impl(_results: np.ndarray,
-                        _num_times: int, 
-                        _num_steps: int, 
+                        _indices: np.ndarray,
+                        _hsize: int,
+                        _num_times: int,
+                        _num_steps: int,
                         _num_var_pers: int):
-    ks_stat_iter = 0.0
-    for idx in range(_num_times):
-        ks_stat_iter = max(ks_stat_iter, _ecf_ks_stat(_results[:, idx].T, _num_steps, _num_var_pers)[1])
-    return ks_stat_iter
+    err = np.zeros((_num_times,))
+    for idx in prange(_num_times):
+        res_std = np.std(_results[:, idx])
+        if res_std == 0.0:
+            continue
+
+        eval_t_fin = 2 * _num_var_pers * np.pi / res_std
+        eval_pts = get_eval_info_times(_num_steps, eval_t_fin)
+        ecf1 = ecf(_results[_indices[:_hsize], idx], eval_pts)
+        ecf2 = ecf(_results[_indices[_hsize:], idx], eval_pts)
+        err[idx] = ecf_compare(ecf1, ecf2)
+    return np.max(err)
 
 
 if has_numba:
-    _test_sampling_impl = numba.njit(_test_sampling_impl)
+    _test_sampling_impl = numba.njit(parallel=True, cache=True)(_test_sampling_impl)
+
+
+def _test_sampling_(results: List[np.ndarray],
+                    indices: np.ndarray,
+                    num_results: int,
+                    num_times: int,
+                    num_steps: int,
+                    num_var_pers: int):
+
+    out_arr = np.zeros((num_results,), dtype=float)
+    hsize = results[0].shape[0] // 2
+
+    for i in range(num_results):
+        np.random.shuffle(indices)
+        err = 0.0
+        for res in results:
+            err = max(err, _test_sampling_impl(res, indices, hsize, num_times, num_steps, num_var_pers))
+        out_arr[i] = err
+
+    return out_arr
+
+
+if has_numba:
+    _test_sampling_ = numba.njit(_test_sampling_)
 
 
 def _test_sampling(_shm_in_info: Dict[str, str],
@@ -494,7 +547,7 @@ def _test_sampling(_shm_in_info: Dict[str, str],
                    _arr_shape0: int,
                    _arr_shape1: int,
                    _num_results: int,
-                   _num_steps: int, 
+                   _num_steps: int,
                    _num_var_pers: int) -> bool:
     # Ensure worker has unique seed
     np.random.seed()
@@ -502,19 +555,11 @@ def _test_sampling(_shm_in_info: Dict[str, str],
     shm_in = {k: shared_memory.SharedMemory(name=v) for k, v in _shm_in_info.items()}
     shm_out = shared_memory.SharedMemory(name=_shm_out_info)
 
-    _results = {k: np.ndarray((_arr_shape0, _arr_shape1), dtype=float, buffer=v.buf) for k, v in shm_in.items()}
     shm_out_arr = np.ndarray((_shm_out_len,), dtype=float, buffer=shm_out.buf)
-    out_arr = np.zeros((_num_results,), dtype=float)
-    results_copy = [np.array(v) for v in _results.values()]
+    _results = [np.ndarray((_arr_shape0, _arr_shape1), dtype=float, buffer=v.buf) for v in shm_in.values()]
     indices = np.asarray(list(range(_arr_shape0)), dtype=int)
 
-    for i in range(_num_results):
-        np.random.shuffle(indices)
-        results_copy = [res[indices] for res in results_copy]
-        max_val = 0.0
-        for res in results_copy:
-            max_val = max(max_val, _test_sampling_impl(res, _arr_shape1, _num_steps, _num_var_pers))
-        out_arr[i] = max_val
+    out_arr = _test_sampling_(_results, indices, _num_results, _arr_shape1, _num_steps, _num_var_pers)
 
     shm_out_arr[_shm_out_idx:_shm_out_idx+_num_results] = out_arr[:]
     return True
@@ -524,12 +569,12 @@ def test_sampling(_results: Dict[str, np.ndarray],
                   incr_sampling=100,
                   err_thresh=1E-4,
                   max_sampling: int = None,
-                  num_steps: int = DEF_EVAL_NUM, 
+                  num_steps: int = DEF_EVAL_NUM,
                   num_var_pers: int = DEF_NUM_VAR_PERS,
                   out=None,
                   num_workers: int = None):
     var_names = list(_results.keys())
-    
+
     # Allocate shared memory
     shm_to = {k: shared_memory.SharedMemory(create=True, size=v.nbytes) for k, v in _results.items()}
     shm_to_arr = {k: np.ndarray(v.shape, dtype=v.dtype, buffer=shm_to[k].buf) for k, v in _results.items()}
@@ -546,18 +591,18 @@ def test_sampling(_results: Dict[str, np.ndarray],
 
     # Do stuff
     sample_size, num_times = _results[var_names[0]].shape
-    
+
     ks_stats = []
-    
+
     # Do initial work
-    
+
     if out is not None:
         out.append_stdout(f'Doing initial work: {incr_sampling}\n')
-    
+
     if num_workers is None:
         num_workers = mp.cpu_count()
     num_workers = min(incr_sampling, num_workers)
-    
+
     num_jobs = [0 for _ in range(num_workers)]
     jobs_left = int(incr_sampling)
     while jobs_left > 0:
@@ -568,7 +613,7 @@ def test_sampling(_results: Dict[str, np.ndarray],
     num_jobs = [n for n in num_jobs if n > 0]
     num_workers = len(num_jobs)
     job_indices = [ji - num_jobs[i] for i, ji in enumerate(np.cumsum(num_jobs))]
-    
+
     if sum(num_jobs) != incr_sampling:
         raise RuntimeError(f'Scheduled {sum(num_jobs)} jobs, though {incr_sampling} jobs were requested')
 
@@ -581,15 +626,15 @@ def test_sampling(_results: Dict[str, np.ndarray],
             out.append_stdout('Launching pool\n')
         pool = mp.Pool(num_workers)
 
-    input_args = [(shm_to_info, 
-                   shm_from.name, 
-                   job_indices[i], 
-                   incr_sampling, 
-                   sample_size, 
-                   num_times, 
-                   num_jobs[i], 
-                   num_steps, 
-                   num_var_pers) 
+    input_args = [(shm_to_info,
+                   shm_from.name,
+                   job_indices[i],
+                   incr_sampling,
+                   sample_size,
+                   num_times,
+                   num_jobs[i],
+                   num_steps,
+                   num_var_pers)
                   for i in range(num_workers)]
 
     if out is not None:
@@ -597,7 +642,7 @@ def test_sampling(_results: Dict[str, np.ndarray],
     pool.starmap(_test_sampling, input_args)
     if out is not None:
         out.append_stdout('Terminating pool\n')
-    
+
     from_arr[:] = shm_from_arr[:]
     ks_stats.extend(from_arr.tolist())
 
@@ -608,26 +653,26 @@ def test_sampling(_results: Dict[str, np.ndarray],
 
     if out is not None:
         out.append_stdout('Doing iterative work\n')
-    
+
     ks_avg_curr = np.average(ks_stats)
     iter_cur = 0
     err_curr = err_thresh + 1.0
     while err_curr >= err_thresh:
         if out is not None:
             out.append_stdout(f'Iteration {iter_cur+1}\n')
-        
+
         if out is not None:
             out.append_stdout('Starting pool\n')
         pool.starmap(_test_sampling, input_args)
         if out is not None:
             out.append_stdout('Terminating pool\n')
-        
+
         from_arr[:] = shm_from_arr[:]
         ks_stats.extend(from_arr.tolist())
 
         if out is not None:
             out.append_stdout(f'Retrieved {len(ks_stats)} results\n')
-        
+
         ks_avg_next = np.average(ks_stats)
         err_curr = abs(ks_avg_next - ks_avg_curr) / ks_avg_curr
 
@@ -639,14 +684,14 @@ def test_sampling(_results: Dict[str, np.ndarray],
         if ks_avg_curr == 0:
             if out is not None:
                 out.append_stdout('Zero average. Terminating.\n')
-            
+
             break
-        
+
         iter_cur += 1
         if max_sampling is not None and len(ks_stats) >= max_sampling:
             if out is not None:
                 out.append_stdout('Maximum sampling accomplied. Terminating.\n')
-            
+
             break
 
     # Free shared memory
@@ -661,17 +706,42 @@ def test_sampling(_results: Dict[str, np.ndarray],
 
 
 def _test_sampling_impl_no_shared(_results: np.ndarray,
-                        _num_times: int, 
-                        _num_steps: int, 
-                        _num_var_pers: int):
-    ks_stat_iter = 0.0
+                                  _indices: np.ndarray,
+                                  _num_times: int,
+                                  _num_steps: int,
+                                  _num_var_pers: int):
+    _results_copy = _results[_indices]
+    err = np.zeros((_num_times,))
     for idx in range(_num_times):
-        ks_stat_iter = max(ks_stat_iter, _ecf_ks_stat(_results[:, idx].T, _num_steps, _num_var_pers)[1])
-    return ks_stat_iter
+        err[idx] = _ecf_ks_stat_s(_results_copy[:, idx].T, _num_steps, _num_var_pers)
+    return np.max(err)
 
 
 if has_numba:
     _test_sampling_impl_no_shared = numba.njit(_test_sampling_impl_no_shared)
+
+
+def _test_sampling_no_shared_(results_copy: List[np.ndarray],
+                              indices: np.ndarray,
+                              num_results: int,
+                              num_times: int,
+                              num_steps: int,
+                              num_var_pers: int):
+    result = np.zeros((num_results,))
+    num_v = len(results_copy)
+
+    for idx in range(num_results):
+        np.random.shuffle(indices)
+        err = np.zeros((num_v,))
+        for j, res in enumerate(results_copy):
+            err[j] = _test_sampling_impl_no_shared(res, indices, num_times, num_steps, num_var_pers)
+        result[idx] = np.max(err)
+
+    return result
+
+
+if has_numba:
+    _test_sampling_no_shared_ = numba.njit(_test_sampling_no_shared_)
 
 
 def _test_sampling_no_shared(_results: Dict[str, np.ndarray],
@@ -684,13 +754,11 @@ def _test_sampling_no_shared(_results: Dict[str, np.ndarray],
     np.random.seed()
     
     indices = np.asarray(list(range(_arr_shape0)), dtype=int)
-    result = []
+    results_copy = [np.array(v) for v in _results.values()]
 
-    for _ in range(_num_results):
-        np.random.shuffle(indices)
-        result.append(max([_test_sampling_impl_no_shared(res[indices, :], _arr_shape1, _num_steps, _num_var_pers) for res in _results.values()]))
+    result = _test_sampling_no_shared_(results_copy, indices, _num_results, _arr_shape1, _num_steps, _num_var_pers)
 
-    return result
+    return result.tolist()
 
 
 def test_sampling_no_shared(_results: Dict[str, np.ndarray],

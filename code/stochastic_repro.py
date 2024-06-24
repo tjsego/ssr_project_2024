@@ -58,8 +58,10 @@ def antimony_to_sbml(model_string: str) -> str:
 
 def generate_dists(params_info: dict):
     param_dists = {}
+
     def _func(_dist_name, *args):
         f = getattr(scipy.stats, _dist_name)
+
         def _impl():
             return f.rvs(*args, random_state=np.random.default_rng())
         return _impl
@@ -174,20 +176,8 @@ DEF_EVAL_NUM_ITER = 2.0
 DEF_NUM_VAR_PERS = 5
 
 
-def get_eval_info_times(ecf_eval_info: ECFEvalInfo, stagger=False):
-    if not stagger:
-        result = np.linspace(0.0, ecf_eval_info[1], ecf_eval_info[0])
-        if result.shape[0] != ecf_eval_info[0]:
-            raise ValueError(f'{result.shape[0]}, {ecf_eval_info[0]}')
-        return result
-    
-    n = ecf_eval_info[0]
-    idx = np.asarray(list(range(n+1)))
-    h = ecf_eval_info[1] / n
-    mask = np.mod(idx, 2) != 0
-    result = idx * h
-    result[mask] += ((idx[mask] + 1) * 2 / (n + 2) - 1) * h
-    return result
+def get_eval_info_times(ecf_eval_info: ECFEvalInfo):
+    return np.linspace(0.0, ecf_eval_info[1], ecf_eval_info[0])
 
 
 if has_numba:
@@ -954,6 +944,7 @@ def measure_stats(_sims: Dict[int, SimSet]):
 
     return result_mean, result_stdev
 
+
 def _measure_ecf_diff_sets(trial: int, 
                            idx: int,
                            name: str, 
@@ -1007,20 +998,18 @@ def fit_ecf_diff(ecf_diff, results_names, trials, fit_func, **kwargs):
 def _ecf_ks_stat(results: np.ndarray,
                  num_steps: int,
                  num_var_pers: int):
-    if np.std(results) == 0.0:
-        incr_max = 1 / num_steps
+    res_std = np.std(results)
+    if res_std == 0.0:
         ks_stat = 0.0
     else:
 
-        incr_max = 2 * num_var_pers * np.pi / np.std(results) / num_steps
-
-        eval_pts = np.arange(0.0, (num_steps+1) * incr_max, incr_max)
-        n = int(results.shape[0] / 2)
+        eval_pts = np.linspace(2 * num_var_pers * np.pi / res_std, num_steps)
+        n = results.shape[0] // 2
         ecf1 = ecf(results[:n], eval_pts)
         ecf2 = ecf(results[n:], eval_pts)
         ks_stat = ecf_compare(ecf1[:, 0], ecf1[:, 1], ecf2[:, 0], ecf2[:, 1])
 
-    return incr_max, ks_stat
+    return ks_stat
 
 
 if has_numba:
@@ -1029,14 +1018,14 @@ if has_numba:
 
 def _test_sampling_impl(_results: np.ndarray,
                         _indices: np.ndarray,
-                        _num_times: int, 
-                        _num_steps: int, 
+                        _num_times: int,
+                        _num_steps: int,
                         _num_var_pers: int):
     _results_copy = _results[_indices]
-    ks_stat_iter = 0.0
+    err = np.zeros((_num_times,))
     for idx in range(_num_times):
-        ks_stat_iter = max(ks_stat_iter, _ecf_ks_stat(_results_copy[:, idx].T, _num_steps, _num_var_pers)[1])
-    return ks_stat_iter
+        err[idx] = _ecf_ks_stat(_results_copy[:, idx].T, _num_steps, _num_var_pers)
+    return np.max(err)
 
 
 if has_numba:
@@ -1050,20 +1039,19 @@ def _test_sampling(_shm_in_info: Dict[str, str],
                    _arr_shape0: int,
                    _arr_shape1: int,
                    _num_results: int,
-                   _num_steps: int, 
-                   _num_var_pers: int) -> List[float]:
+                   _num_steps: int,
+                   _num_var_pers: int):
     # Get shared data
     shm_in = {k: shared_memory.SharedMemory(name=v) for k, v in _shm_in_info.items()}
     shm_out = shared_memory.SharedMemory(name=_shm_out_info)
-    _results = {k: np.ndarray((_arr_shape0, _arr_shape1), dtype=float, buffer=v.buf) for k, v in shm_in.items()}
     shm_out_arr = np.ndarray((_shm_out_len,), dtype=float, buffer=shm_out.buf)
     out_arr = np.zeros((_num_results,), dtype=float)
-    results_copy = {k: np.array(v) for k, v in _results.items()}
+    _results = [np.ndarray((_arr_shape0, _arr_shape1), dtype=float, buffer=v.buf) for v in shm_in.values()]
     indices = np.asarray(list(range(_arr_shape0)), dtype=int)
 
     for i in range(_num_results):
         np.random.shuffle(indices)
-        out_arr[i] = max([_test_sampling_impl(res, indices, _arr_shape1, _num_steps, _num_var_pers) for res in results_copy.values()])
+        out_arr[i] = max([_test_sampling_impl(res, indices, _arr_shape1, _num_steps, _num_var_pers) for res in _results])
 
     shm_out_arr[_shm_out_idx:_shm_out_idx+_num_results] = out_arr[:]
     return True
