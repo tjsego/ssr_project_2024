@@ -9,7 +9,7 @@ notebook_output = os.path.join(this_dir, 'refreshed_notebooks')
 notebook_dir = os.path.join(os.path.dirname(this_dir), 'notebooks')
 
 notebooks = [
-    # 'gsw',  # Issue with results loading
+    'gsw',
     'proto_10paramvar',
     'proto_10paramvar2',
     'proto_2paramvar',

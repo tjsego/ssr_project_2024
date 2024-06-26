@@ -62,12 +62,12 @@ def _compare_experiment_implementations(sz: int,
                                         eval_fin: float,
                                         data1: np.ndarray,
                                         data2: np.ndarray):
-    eval_t = sim_lib.get_eval_info_times((eval_num, eval_fin))
+    eval_t = sim_lib.get_eval_info_times(eval_num, eval_fin)
     kss = sim_lib.ecf_compare(sim_lib.ecf(data1, eval_t), sim_lib.ecf(data2, eval_t))
     return sz, param, kss
 
 
-def compare_experiment_implementations(prefices: List[str], data_impl1, data_impl2, eval_info1, eval_info2):
+def compare_experiment_implementations(prefices: List[str], data_impl1, data_impl2, eval_info1, eval_info2, pool=None):
     _kss_size = {sz: dict() for sz in data_impl1.keys()}
 
     input_args = []
@@ -84,9 +84,12 @@ def compare_experiment_implementations(prefices: List[str], data_impl1, data_imp
                     data_impl2[p][:sz, time_idx].T
                 ))
 
-    num_workers = min(mp.cpu_count(), len(input_args))
-    with mp.Pool(num_workers) as p:
-        for sz, param, kss in p.starmap(_compare_experiment_implementations, input_args):
-            _kss_size[sz][param] = max(_kss_size[sz][param], kss)
+    if pool is None:
+        pool = sim_lib.get_pool()
+    if pool is None:
+        num_workers = min(mp.cpu_count(), len(input_args))
+        pool = mp.Poool(num_workers)
+    for sz, param, kss in pool.starmap(_compare_experiment_implementations, input_args):
+        _kss_size[sz][param] = max(_kss_size[sz][param], kss)
 
     return _kss_size
