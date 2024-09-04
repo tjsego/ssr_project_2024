@@ -104,7 +104,8 @@ class Test:
             json_data['acc_diff_kl_div'] = self.acc_diff_kl_div
 
         if self.analysis_corr is not None:
-            json_data['analysis_corr'] = {i: {s: (t[0].tolist(), t[1].tolist()) for s, t in d.items()} for i, d in self.analysis_corr.items()}
+            json_data['analysis_corr'] = {i: {s: (t[0].tolist(), t[1].tolist()) for s, t in d.items()}
+                                          for i, d in self.analysis_corr.items()}
 
         if self.ecf is not None:
             json_data['ecf'] = {i: [{s: a.tolist() for s, a in d.items()} for d in v] for i, v in self.ecf.items()}
@@ -148,22 +149,28 @@ class Test:
             result.sims_s = {int(name): sr.SimSet.from_json(sim) for name, sim in json_data['sims_s'].items()}
         
         if 'acc_diff_basic' in json_data.keys():
-            result.acc_diff_basic = {float(f): {s: {int(i): float(ff) for i, ff in dd.items()} for s, dd in d.items()} for f, d in json_data['acc_diff_basic'].items()}
+            result.acc_diff_basic = {float(f): {s: {int(i): float(ff) for i, ff in dd.items()} for s, dd in d.items()}
+                                     for f, d in json_data['acc_diff_basic'].items()}
         
         if 'acc_diff_kl_div' in json_data.keys():
-            result.acc_diff_kl_div = {s: {int(i): float(f) for i, f in d.items()} for s, d in json_data['acc_diff_kl_div'].items()}
+            result.acc_diff_kl_div = {s: {int(i): float(f) for i, f in d.items()}
+                                      for s, d in json_data['acc_diff_kl_div'].items()}
         
         if 'analysis_corr' in json_data.keys():
-            result.analysis_corr = {int(i): {s: (np.array(t[0]), np.array(t[1])) for s, t in d.items()} for i, d in json_data['analysis_corr'].items()}
+            result.analysis_corr = {int(i): {s: (np.array(t[0]), np.array(t[1])) for s, t in d.items()}
+                                    for i, d in json_data['analysis_corr'].items()}
         
         if 'ecf' in json_data.keys():
-            result.ecf = {int(i): [{s: np.array(a) for s, a in d.items()} for d in v] for i, v in json_data['ecf'].items()}
+            result.ecf = {int(i): [{s: np.array(a) for s, a in d.items()} for d in v]
+                          for i, v in json_data['ecf'].items()}
         
         if 'ecf_eval_info' in json_data.keys():
-            result.ecf_eval_info = {int(i): [{s: (int(ei[0]), float(ei[1])) for s, ei in d.items()} for d in v] for i, v in json_data['ecf_eval_info'].items()}
+            result.ecf_eval_info = {int(i): [{s: (int(ei[0]), float(ei[1])) for s, ei in d.items()} for d in v]
+                                    for i, v in json_data['ecf_eval_info'].items()}
 
         if 'ecf_ks_stat' in json_data.keys():
-            result.ecf_ks_stat = {int(i): [{s: float(f) for s, f in d.items()} for d in v] for i, v in json_data['ecf_ks_stat'].items()}
+            result.ecf_ks_stat = {int(i): [{s: float(f) for s, f in d.items()} for d in v]
+                                  for i, v in json_data['ecf_ks_stat'].items()}
 
         if 'ecf_diff' in json_data.keys():
             result.ecf_diff = {int(i): {s: float(f) for s, f in d.items()} for i, d in json_data['ecf_diff'].items()}
@@ -172,7 +179,8 @@ class Test:
             result.ecf_sampling = {int(i): (float(t[0]), float(t[1])) for i, t in json_data['ecf_sampling'].items()}
 
         if 'ks_stats_sampling' in json_data.keys():
-            result.ks_stats_sampling = {int(i): [float(f) for f in d] for i, d in json_data['ks_stats_sampling'].items()}
+            result.ks_stats_sampling = {int(i): [float(f) for f in d]
+                                        for i, d in json_data['ks_stats_sampling'].items()}
 
         return result
 
@@ -193,7 +201,8 @@ class Test:
     def execute_deterministic(self):
         if self.sim_d is not None:
             return
-        self.sim_d = sr.SimSet(model=self.model, num_trials=1, stochastic=False, num_steps=self.num_steps, t_fin=self.t_fin)
+        self.sim_d = sr.SimSet(model=self.model, num_trials=1, stochastic=False, num_steps=self.num_steps,
+                               t_fin=self.t_fin)
         self.sim_d.execute()
 
     def execute_stochastic(self, label=None):
@@ -209,10 +218,12 @@ class Test:
             sim.execute_p()
 
     def measure_dist_diff_basic(self, filter: float = 0.0, progress_bar=None):
-        self.acc_diff_basic[filter] = sr.measure_dist_diff(self.sims_s, self.sample_times, self.model.results_names, self.trials, filter=filter, progress_bar=progress_bar)
+        self.acc_diff_basic[filter] = sr.measure_dist_diff(self.sims_s, self.sample_times, self.model.results_names,
+                                                           self.trials, filter=filter, progress_bar=progress_bar)
 
     def measure_dist_div_kldiv(self, progress_bar=None):
-        self.acc_diff_kl_div = sr.measure_dist_diff(self.sims_s, self.sample_times, self.model.results_names, self.trials, comparator='kl_div', progress_bar=progress_bar)
+        self.acc_diff_kl_div = sr.measure_dist_diff(self.sims_s, self.sample_times, self.model.results_names,
+                                                    self.trials, comparator='kl_div', progress_bar=progress_bar)
 
     def measure_correlation(self):
         self.analysis_corr = sr.analysis_corr(self.sims_s, self.trials, self.model.results_names)
@@ -274,7 +285,8 @@ class Test:
         data_p_cov = []
         for i in range(2, len(self.trials) + 1):
             try:
-                data_p_i, data_p_cov_i = sr.fit_ecf_diff(self.ecf_diff, self.model.results_names, self.trials[:i], Test.ecf_diff_fit_func, **kwargs)
+                data_p_i, data_p_cov_i = sr.fit_ecf_diff(self.ecf_diff, self.model.results_names, self.trials[:i],
+                                                         Test.ecf_diff_fit_func, **kwargs)
             except RuntimeError:
                 data_p_i, data_p_cov_i = None, None
             data_p.append(data_p_i)
@@ -347,7 +359,9 @@ class Test:
         if self.sim_d is None:
             raise RuntimeError
 
-        fig, ax = plt.subplots(1, len(self.model.results_names), figsize=(12.0, 2.0), layout='compressed')
+        fig, ax = plt.subplots(1, len(self.model.results_names),
+                               figsize=(12.0, 2.0), layout='compressed', squeeze=False)
+        ax = ax[0]
         for i, name in enumerate(self.model.results_names):
             self.sim_d.subplot_var(ax[i], name)
             ax[i].set_title(name)
@@ -358,29 +372,24 @@ class Test:
         if self.sims_s is None:
             raise RuntimeError
 
-        fig, _ax = plt.subplots(len(self.trials), len(self.model.results_names), sharex=True, figsize=(3 * len(self.model.results_names), 2 * len(self.trials)), layout='compressed')
-        ax = _ax if len(self.trials) > 1 else [_ax]
-        if len(self.model.results_names) == 1:
-            axt = ax
-            ax = [[axtt] for axtt in axt]
+        fig, axs = plt.subplots(len(self.trials), len(self.model.results_names), sharex=True,
+                                figsize=(3 * len(self.model.results_names), 2 * len(self.trials)),
+                                layout='compressed', squeeze=False)
 
         for i, t in enumerate(self.trials):
-            plot_comp(self.model, ax, self.sims_s[t], i, self.sim_d if plot_det else None)
-            ax[i][0].set_ylabel(f'Sample size {t}')
+            plot_comp(self.model, axs, self.sims_s[t], i, self.sim_d if plot_det else None)
+            axs[i][0].set_ylabel(f'Sample size {t}')
         for j in range(len(self.model.results_names)):
-            ax[-1][j].set_xlabel('Time')
-        return fig, _ax
+            axs[-1][j].set_xlabel('Time')
+        return fig, axs
 
     def plot_distributions(self):
         if self.sims_s is None:
             raise RuntimeError
 
-        fig, _ax = plt.subplots(len(self.trials), len(self.model.results_names), figsize=(3 * len(self.model.results_names), 2.0 * len(self.trials)), sharex=True, layout='compressed')
-        ax = _ax if len(self.trials) > 1 else [_ax]
-        if len(self.model.results_names) == 1:
-            axt = ax
-            ax = [[axtt] for axtt in axt]
-
+        fig, axs = plt.subplots(len(self.trials), len(self.model.results_names),
+                                figsize=(3 * len(self.model.results_names), 2.0 * len(self.trials)),
+                                sharex=True, layout='compressed', squeeze=False)
         for j, trial in enumerate(self.trials):
             for i, name in enumerate(self.model.results_names):
 
@@ -393,12 +402,12 @@ class Test:
                     flat_time.extend([sample_time] * len(res))
                     flat_res.extend(res)
 
-                ax[j][i].hist2d(flat_time, flat_res, density=True, bins=(len(self.sims_s[self.trials[0]].time), 10))
-            ax[j][0].set_ylabel(f'Sample size {trial}')
+                axs[j][i].hist2d(flat_time, flat_res, density=True, bins=(len(self.sims_s[self.trials[0]].time), 10))
+            axs[j][0].set_ylabel(f'Sample size {trial}')
         for i, name in enumerate(self.model.results_names):
-            ax[0][i].set_title(name)
-            ax[-1][i].set_xlabel('Time')
-        return fig, _ax
+            axs[0][i].set_title(name)
+            axs[-1][i].set_xlabel('Time')
+        return fig, axs
 
     def plot_distributions_compare(self, trial: int, num_bins: int = 10):
         if self.sims_s is None:
@@ -406,7 +415,8 @@ class Test:
         elif trial not in self.trials:
             raise ValueError(f'Input {trial} not available ({self.trials})')
 
-        fig, ax = plt.subplots(2, len(self.model.results_names), figsize=(12.0, 4.0), sharex=True, layout='compressed')
+        fig, ax = plt.subplots(2, len(self.model.results_names), figsize=(12.0, 4.0),
+                               sharex=True, layout='compressed', squeeze=False)
 
         for i, name in enumerate(self.model.results_names):
 
@@ -437,7 +447,9 @@ class Test:
 
     def plot_dist_diff(self, acc_diff: Dict[str, Dict[int, float]]):
 
-        fig, ax = plt.subplots(1, len(self.model.results_names), sharey=True, figsize=(12.0, 2.0), layout='compressed')
+        fig, ax = plt.subplots(1, len(self.model.results_names), sharey=True,
+                               figsize=(12.0, 2.0), layout='compressed', squeeze=False)
+        ax = ax[0]
 
         for i, name in enumerate(self.model.results_names):
             ax[i].scatter(acc_diff[name].keys(), acc_diff[name].values())
@@ -457,8 +469,10 @@ class Test:
         if self.analysis_corr is None:
             raise RuntimeError
 
-        fig1, ax1 = plt.subplots(len(self.trials), len(self.model.results_names), figsize=(12.0, 2.0 * len(self.trials)), layout='compressed')
-        fig2, ax2 = plt.subplots(len(self.trials), len(self.model.results_names), figsize=(12.0, 2.0 * len(self.trials)), layout='compressed')
+        fig1, ax1 = plt.subplots(len(self.trials), len(self.model.results_names),
+                                 figsize=(12.0, 2.0 * len(self.trials)), layout='compressed', squeeze=False)
+        fig2, ax2 = plt.subplots(len(self.trials), len(self.model.results_names),
+                                 figsize=(12.0, 2.0 * len(self.trials)), layout='compressed', squeeze=False)
 
         for j, trial in enumerate(self.trials):
             for i, name in enumerate(self.model.results_names):
@@ -485,10 +499,10 @@ class Test:
 
         args = 2, len(self.model.results_names)
         if fig is None:
-            kwargs = dict(sharex=False, sharey=False, figsize=(12.0, 2.0 * 2), layout='compressed')
+            kwargs = dict(sharex=False, sharey=False, figsize=(12.0, 2.0 * 2), layout='compressed', squeeze=False)
             fig, ax = plt.subplots(*args, **kwargs)
         else:
-            ax = fig.subplots(*args)
+            ax = fig.subplots(*args, squeeze=False)
 
         for trial in self.trials:
             idx = self.sims_s[trial].get_time_index(time)
@@ -519,10 +533,11 @@ class Test:
 
         args = 1, len(self.model.results_names)
         if fig is None:
-            kwargs = dict(sharey=False, figsize=(12.0, 4.0), layout='compressed')
+            kwargs = dict(sharey=False, figsize=(12.0, 4.0), layout='compressed', squeeze=False)
             fig, ax = plt.subplots(*args, **kwargs)
         else:
-            ax = fig.subplots(*args)
+            ax = fig.subplots(*args, squeeze=False)
+        ax = ax[0]
         for i, name in enumerate(self.model.results_names):
             ax[i].scatter(self.trials, [self.ecf_diff[trial][name] for trial in self.trials])
             ax[i].set_xlabel('Sample size')
@@ -558,8 +573,10 @@ class Test:
         return fig, ax
 
     def plot_ecf_comparison(self, time: float):
-        fig_r, ax_r = plt.subplots(len(self.trials), len(self.model.results_names), sharex=False, sharey=False, figsize=(12.0, 2.0 * len(self.trials)), layout='compressed')
-        fig_i, ax_i = plt.subplots(len(self.trials), len(self.model.results_names), sharex=False, sharey=False, figsize=(12.0, 2.0 * len(self.trials)), layout='compressed')
+        fig_r, ax_r = plt.subplots(len(self.trials), len(self.model.results_names), sharex=False, sharey=False,
+                                   figsize=(12.0, 2.0 * len(self.trials)), layout='compressed', squeeze=False)
+        fig_i, ax_i = plt.subplots(len(self.trials), len(self.model.results_names), sharex=False, sharey=False,
+                                   figsize=(12.0, 2.0 * len(self.trials)), layout='compressed', squeeze=False)
 
         for i, trial in enumerate(self.trials):
             n = int(trial / 2)
@@ -597,7 +614,9 @@ class Test:
         if fig_axs is not None:
             fig, axs = fig_axs
         else:
-            fig, axs = plt.subplot(1, len(self.model.results_names), sharey=False, figsize=(12.0, 4.0), layout='compressed')
+            fig, axs = plt.subplot(1, len(self.model.results_names), sharey=False,
+                                   figsize=(12.0, 4.0), layout='compressed', squeeze=False)
+            axs = axs[0]
 
         for i, name in enumerate(self.model.results_names):
             ax = axs[i]
@@ -605,7 +624,8 @@ class Test:
             for j, data_p_i in enumerate(self.ecf_diff_fits[0]):
                 if data_p_i is not None:
                     model_p = data_p_i[name]
-                    ax.plot(self.trials, [Test.ecf_diff_fit_func(n, *model_p) for n in self.trials], label=f'Sample size {self.trials[j+1]}')
+                    ax.plot(self.trials, [Test.ecf_diff_fit_func(n, *model_p) for n in self.trials],
+                            label=f'Sample size {self.trials[j+1]}')
         return fig, axs
 
     def plot_ecf_sampling_fits(self, fig_axs=None):
@@ -615,23 +635,26 @@ class Test:
         if fig_axs is not None:
             fig, axs = fig_axs
         else:
-            fig, axs = plt.subplot(1, 1, figsize=(6.0, 4.0), layout='compressed')
+            fig, axs = plt.subplot(1, 1, figsize=(6.0, 4.0), layout='compressed', squeeze=False)
 
         for i, data_f in enumerate(self.ecf_sampling_fits[0]):
             if data_f is not None:
-                axs.plot(self.trials, [Test.ecf_diff_fit_func(n, *data_f) for n in self.trials], label=f'Sample size {self.trials[i+1]}')
+                axs.plot(self.trials, [Test.ecf_diff_fit_func(n, *data_f) for n in self.trials],
+                         label=f'Sample size {self.trials[i+1]}')
         return fig, axs
 
     def plot_ks_sampling(self):
         if self.ks_stats_sampling is None:
             raise RuntimeError
 
-        fig, axs = plt.subplots(len(self.trials), 1, sharex=True, figsize=(12.0, 3.0 * len(self.trials)), layout='compressed')
+        fig, axs = plt.subplots(len(self.trials), 1, sharex=True, figsize=(12.0, 3.0 * len(self.trials)),
+                                layout='compressed', squeeze=False)
+        axs = axs[:][0]
         for i, t in enumerate(self.trials):
             ax = axs[i]
             ax.hist(self.ks_stats_sampling[t], density=True)
             ax.set_ylabel(f'Sample size {t}')
-        axs[-1].set_xlabel('EFECT error')
+        axs[-1][0].set_xlabel('EFECT error')
         fig.suptitle('EFECT error density plots')
         return fig, axs
 
@@ -642,7 +665,9 @@ class Test:
         if fig_axs is not None:
             fig, axs = fig_axs
         else:
-            fig, axs = plt.subplots(1, len(self.model.results_names), sharey=False, figsize=(12.0, 4.0), layout='compressed')
+            fig, axs = plt.subplots(1, len(self.model.results_names), sharey=False, figsize=(12.0, 4.0),
+                                    layout='compressed', squeeze=False)
+            axs = axs[0]
 
         colors = {name: dict() for name in self.model.results_names}
 
@@ -650,10 +675,8 @@ class Test:
             ax = axs[i]
 
             for trial in self.trials:
-                times = self.sims_s[trial].results_time
-                means = self.means[trial][name]
 
-                lns = ax.plot(times, self.means[trial][name], label=f'Samples {trial}')
+                lns = ax.plot(self.sims_s[trial].results_time, self.means[trial][name], label=f'Samples {trial}')
                 colors[name][trial] = lns[0].get_color()
 
             ax.set_title(name)
@@ -664,6 +687,7 @@ class Test:
             ax = axs[i]
 
             for trial in self.trials:
+                times = self.sims_s[trial].results_time
                 means = self.means[trial][name]
                 stdevs = self.stdevs[trial][name]
                 color = colors[name][trial]

@@ -229,7 +229,9 @@ class ECF:
             print('incr =', incr)
             raise e
 
-    def eval_pts(self, num_steps: Dict[str, Optional[int]] = None, incr: Dict[str, Optional[float]] = None) -> Dict[str, np.ndarray]:
+    def eval_pts(self,
+                 num_steps: Dict[str, Optional[int]] = None,
+                 incr: Dict[str, Optional[float]] = None) -> Dict[str, np.ndarray]:
         if num_steps is None:
             num_steps = self.num_steps
         else:
@@ -545,7 +547,8 @@ def sampled_hist(sims, sample_times, results_names, trials, num_workers: int = N
         sampled_max[sample_time] = {}
 
         for name in results_names:
-            sampled_min[sample_time][name], sampled_max[sample_time][name] = sim_set_min_max(list(sims.values()), name, time=sample_time)
+            sampled_min[sample_time][name], sampled_max[sample_time][name] = sim_set_min_max(list(sims.values()), name,
+                                                                                             time=sample_time)
 
         if progress_bar is not None:
             progress_bar.value += 1
@@ -562,7 +565,8 @@ def sampled_hist(sims, sample_times, results_names, trials, num_workers: int = N
                 data = sims[trial].extract_var_time(name, sample_time)
                 result[sample_time][name][trial] = np.histogram(data, 
                                                                 density=True, 
-                                                                range=(sampled_min[sample_time][name], sampled_max[sample_time][name]))
+                                                                range=(sampled_min[sample_time][name],
+                                                                       sampled_max[sample_time][name]))
                 if progress_bar is not None:
                     progress_bar.value += 1
 
@@ -643,7 +647,9 @@ def measure_dist_diff(sims,
         sampled_max[sample_time] = {}
 
         for name in results_names:
-            sampled_min[sample_time][name], sampled_max[sample_time][name] = sim_set_min_max(list(sims.values()), name, idx=sample_index)
+            sampled_min[sample_time][name], sampled_max[sample_time][name] = sim_set_min_max(list(sims.values()),
+                                                                                             name,
+                                                                                             idx=sample_index)
 
         if progress_bar is not None:
             progress_bar.value += 1
@@ -855,10 +861,11 @@ def generate_ecfs(_sims: Dict[int, SimSet],
                   ecf_eval_info: Dict[int, List[Dict[str, ECFEvalInfo]]] = None):
     sample_times = {trial: _sims[trial].results_time for trial in trials}
     if ecf_eval_info is None:
-        ecf_eval_info = {t: [{n: (DEF_EVAL_NUM, DEF_EVAL_FIN) for n in results_names} for _ in sample_times[t]] for t in trials}
+        ecf_eval_info = {t: [{n: (DEF_EVAL_NUM, DEF_EVAL_FIN) for n in results_names} for _ in sample_times[t]]
+                         for t in trials}
 
     result = {trial: [{name: np.ndarray((ecf_eval_info[trial][i][name][0], 2)) for name in results_names} 
-                      for i in range(len(sample_times))] 
+                      for i in range(len(sample_times[trial]))]
               for trial in trials}
 
     input_args = []
@@ -866,7 +873,8 @@ def generate_ecfs(_sims: Dict[int, SimSet],
         for name in results_names:
             for k, sample_time in enumerate(sample_times[trial]):
                 input_args.append((
-                    trial, name, ecf_eval_info[trial][k][name][0], ecf_eval_info[trial][k][name][1], k, _sims[trial].extract_var_time(name, sample_time)
+                    trial, name, ecf_eval_info[trial][k][name][0], ecf_eval_info[trial][k][name][1], k,
+                    _sims[trial].extract_var_time(name, sample_time)
                 ))
 
     num_workers = min(mp.cpu_count(), len(input_args))
@@ -1051,7 +1059,8 @@ def _test_sampling(_shm_in_info: Dict[str, str],
 
     for i in range(_num_results):
         np.random.shuffle(indices)
-        out_arr[i] = max([_test_sampling_impl(res, indices, _arr_shape1, _num_steps, _num_var_pers) for res in _results])
+        out_arr[i] = max([_test_sampling_impl(res, indices, _arr_shape1, _num_steps, _num_var_pers)
+                          for res in _results])
 
     shm_out_arr[_shm_out_idx:_shm_out_idx+_num_results] = out_arr[:]
     return True
