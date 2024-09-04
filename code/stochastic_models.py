@@ -6,7 +6,11 @@ import json
 
 class SBMLModel:
 
-    def __init__(self, sbml: str, results_names: List[str], param_dists: Optional[Dict[str, Tuple[str, Any]]] = None, mods: Optional[Dict[str, float]] = None) -> None:
+    def __init__(self,
+                 sbml: str,
+                 results_names: List[str],
+                 param_dists: Optional[Dict[str, Tuple[str, Any]]] = None,
+                 mods: Optional[Dict[str, float]] = None) -> None:
         super().__init__()
 
         self.sbml = sbml
@@ -25,9 +29,11 @@ class SBMLModel:
 
     @staticmethod
     def from_json(json_data: dict):
+        param_dists = {k: (t[0], tuple([float(tt) for tt in t[1]])) for k, t in
+                       json_data['param_dists'].items()} if 'param_dists' in json_data.keys() else None
         return SBMLModel(sbml=json_data['sbml'],
                          results_names=json_data['results_names'],
-                         param_dists={k: (t[0], tuple([float(tt) for tt in t[1]])) for k, t in json_data['param_dists'].items()} if 'param_dists' in json_data.keys() else None,
+                         param_dists=param_dists,
                          mods=json_data['mods'] if 'mods' in json_data.keys() else None)
 
     def save(self, file_path: str):

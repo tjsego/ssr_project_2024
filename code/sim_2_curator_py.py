@@ -43,7 +43,10 @@ class CuratorAnalysis:
         self.results_times = results_times
         self.results = results
 
-        self.ks_stats_samp = sim_lib.test_sampling(results, err_thresh=sampling_err_thresh)[0] if ks_stats_samp is None else ks_stats_samp
+        if ks_stats_samp is None:
+            self.ks_stats_samp = sim_lib.test_sampling(results, err_thresh=sampling_err_thresh)[0]
+        else:
+            self.ks_stats_samp = ks_stats_samp
         self.err_max = err_max
 
     def copy(self):
@@ -94,9 +97,10 @@ class CuratorAnalysis:
         self.err_max = {n: 0.0 for n in self.var_names}
         for name in self.var_names:
             for i in range(self.num_steps):
-                err_i = sim_lib.ecf_compare(sim_lib.ecf(self.results[name][:modeler_metadata.sample_size, i], 
-                                                        sim_lib.get_eval_info_times(*modeler_metadata.ecf_eval_info[name][i])), 
-                                            modeler_metadata.ecf_evals[name][i])
+                err_i = sim_lib.ecf_compare(
+                    sim_lib.ecf(self.results[name][:modeler_metadata.sample_size, i],
+                                sim_lib.get_eval_info_times(*modeler_metadata.ecf_eval_info[name][i])),
+                    modeler_metadata.ecf_evals[name][i])
                 if err_i > self.err_max[name]:
                     self.err_max[name] = err_i
         return self.err_max
@@ -110,7 +114,8 @@ class CuratorAnalysis:
             return 1.0
         q2 = (modeler_metadata.sample_size + 1) / modeler_metadata.sample_size * np.var(self.ks_stats_samp, ddof=1)
         lam2 = (err_max - err_avg) * (err_max - err_avg) / q2
-        pr = np.floor((modeler_metadata.sample_size + 1) / modeler_metadata.sample_size * ((modeler_metadata.sample_size - 1) / lam2 + 1)) / (modeler_metadata.sample_size + 1)
+        pr = np.floor((modeler_metadata.sample_size + 1) / modeler_metadata.sample_size * (
+                    (modeler_metadata.sample_size - 1) / lam2 + 1)) / (modeler_metadata.sample_size + 1)
         return min(1.0, pr)
 
 

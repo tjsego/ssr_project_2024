@@ -206,12 +206,12 @@ class Test:
         self.sim_d.execute()
 
     def execute_stochastic(self, label=None):
-        self.sims_s = {t: sr.SimSet(model=self.model, 
-                            num_trials=t, 
-                            stochastic=self.stochastic, 
-                            num_steps=self.num_steps, 
-                            t_fin=self.t_fin) 
-                for t in self.trials}
+        self.sims_s = {t: sr.SimSet(model=self.model,
+                                    num_trials=t,
+                                    stochastic=self.stochastic,
+                                    num_steps=self.num_steps,
+                                    t_fin=self.t_fin)
+                       for t in self.trials}
         for t, sim in self.sims_s.items():
             if label is not None:
                 label.value = f'Evaluating sample size {t}...'
@@ -456,7 +456,7 @@ class Test:
             ax[i].set_title(name)
             ax[i].set_xscale('log')
             ax[i].set_xlabel('Sample size')
-            ax[i].set_ylim(-0.05, max(1, 1.05 * max(acc_diff[name].values())))
+            ax[i].set_ylim(-0.05, max(1.0, 1.05 * max(acc_diff[name].values())))
 
         max_val = -1.0
         for name in self.model.results_names:
@@ -476,10 +476,10 @@ class Test:
 
         for j, trial in enumerate(self.trials):
             for i, name in enumerate(self.model.results_names):
-                corr, corrMax = self.analysis_corr[trial][name]
+                corr, corr_max = self.analysis_corr[trial][name]
 
                 ax1[j][i].imshow(corr, vmin=-1, vmax=1)
-                ax2[j][i].plot(corrMax)
+                ax2[j][i].plot(corr_max)
                 ax2[j][i].set_ylim(-1.1, 1.1)
             ax1[j][0].set_ylabel(f'Sample size {trial}')
             ax2[j][0].set_ylabel(f'Sample size {trial}')

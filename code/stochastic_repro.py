@@ -166,7 +166,8 @@ if has_numba:
 
 ECFEvalInfo = Tuple[int, float]
 """
-Evaluation information for an empirical characteristic function: number of evaluations and final value of independent variable.
+Evaluation information for an empirical characteristic function: 
+number of evaluations and final value of independent variable.
 """
 
 DEF_EVAL_FIN = 1.0
@@ -528,7 +529,7 @@ def sim_set_min_max(sims: List[SimSet], name: str, time: float = None, idx: int 
     return min(min_r), max(max_r)
 
 
-def sampled_hist(sims, sample_times, results_names, trials, num_workers: int = None, progress_bar = None):
+def sampled_hist(sims, sample_times, results_names, trials, num_workers: int = None, progress_bar=None):
 
     if num_workers is None:
         num_workers = mp.cpu_count() * 2
@@ -547,7 +548,8 @@ def sampled_hist(sims, sample_times, results_names, trials, num_workers: int = N
         sampled_max[sample_time] = {}
 
         for name in results_names:
-            sampled_min[sample_time][name], sampled_max[sample_time][name] = sim_set_min_max(list(sims.values()), name,
+            sampled_min[sample_time][name], sampled_max[sample_time][name] = sim_set_min_max(list(sims.values()),
+                                                                                             name,
                                                                                              time=sample_time)
 
         if progress_bar is not None:

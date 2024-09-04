@@ -36,7 +36,8 @@ def load_data(prefices: List[str], res_dir: str, label_offset: int = 0, num_entr
     obj_data = {p: dict() for p in prefices}
     num_steps = None
     
-    for pool_data in pool.starmap(_load_data, [(label_offset, num_entries, f_path, prefices) for f_path in res_file_paths]):
+    for pool_data in pool.starmap(_load_data,
+                                  [(label_offset, num_entries, f_path, prefices) for f_path in res_file_paths]):
         if pool_data is None:
             continue
         res_label, prefix, prefix_data = pool_data
@@ -88,7 +89,7 @@ def compare_experiment_implementations(prefices: List[str], data_impl1, data_imp
         pool = sim_lib.get_pool()
     if pool is None:
         num_workers = min(mp.cpu_count(), len(input_args))
-        pool = mp.Poool(num_workers)
+        pool = mp.Pool(num_workers)
     for sz, param, kss in pool.starmap(_compare_experiment_implementations, input_args):
         _kss_size[sz][param] = max(_kss_size[sz][param], kss)
 

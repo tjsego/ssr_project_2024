@@ -310,8 +310,8 @@ class SDEResultSample:
 
         return sim_lib.Metadata(sample_size=sample_size,
                                 simulator=alg_name,
-                                ks_stat_mean=np.mean(ks_stats_samp_hist),
-                                ks_stat_stdev=np.std(ks_stats_samp_hist, ddof=1),
+                                ks_stat_mean=float(np.mean(ks_stats_samp_hist)),
+                                ks_stat_stdev=float(np.std(ks_stats_samp_hist, ddof=1)),
                                 sample_times=self.time,
                                 ecf_evals=ecf_evals,
                                 ecf_eval_info=ecf_eval_info,

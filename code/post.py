@@ -16,12 +16,12 @@ def export_ecf_diff(fp: str, ecf_diff: dict):
         for name in var_names:
             data[name].append(ecf_diff[str(t)][name])
 
-    with open(fp, 'w') as f:
+    with open(fp, 'w') as _f:
         for name, name_data in data.items():
-            f.write(f'Name,{name}\n')
-            f.write('Replicates,Diff\n')
+            _f.write(f'Name,{name}\n')
+            _f.write('Replicates,Diff\n')
             for i, t in enumerate(trials):
-                f.write(f'{t},{name_data[i]}\n')
+                _f.write(f'{t},{name_data[i]}\n')
 
 
 def extract_ecf_diff(fp_json: str, fp_output: str):
