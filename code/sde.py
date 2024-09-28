@@ -297,12 +297,12 @@ class SDEResultSample:
     def __len__(self):
         return self.data.shape[0]
 
-    def generate_metadata(self, sig_figs=16) -> sim_lib.Metadata:
+    def generate_metadata(self, sig_figs=16, err_thresh=1E-3) -> sim_lib.Metadata:
         indices = self.indices
 
         results = {name: sim_lib.round_arr_to_sigfigs(self.data[:, indices[name], :], sig_figs)
                    for name in self.var_names}
-        ks_stats_samp_hist = sim_lib.test_sampling(results, err_thresh=1E-3)[0]
+        ks_stats_samp_hist = sim_lib.test_sampling(results, err_thresh=err_thresh)[0]
 
         sample_size = int(self.data.shape[0] / 2)
         results_export = {name: v[:sample_size, :] for name, v in results.items()}
@@ -345,6 +345,8 @@ class SDEResultSample:
             if fig_kwargs is None:
                 fig_kwargs = {}
             fig_axs = plt.subplots(1, len(self.var_names), **fig_kwargs)
+            if len(self.var_names) == 1:
+                fig_axs = fig_axs[0], [fig_axs[1]]
 
         plot_kwargs_actual = {name: {} for name in self.var_names}
         if plot_all_kwargs is not None:
