@@ -190,6 +190,72 @@ class Faranda2020(sde.SDEModel):
 __known_models__.append(Faranda2020)
 
 
+class Liesenfeld2003TwoComponent(sde.SDEModel):
+    """Two-component model from 10.1016/S0927-5398(02)00072-5"""
+
+    name = 'liesenfeld_2003_2comp'
+    variable_names = ['r', 'lam1', 'lam2']
+    parameter_defaults = {
+        'gam1': 0.003,
+        'delta1': 0.993,
+        'delta2': 0.363,
+        'nu1': 0.064,
+        'nu2': 0.475
+    }
+
+    def step(self,
+             current_time: float,
+             current_vals: np.ndarray,
+             dt: float,
+             parameters: Dict[str, float]) -> np.ndarray:
+        p = parameters
+        r, lam1, lam2 = current_vals
+        result = np.zeros_like(current_vals)
+
+        lam1_n = p['gam1'] + p['delta1'] * lam1 + p['nu1'] * np.random.normal()
+        lam2_n = p['delta2'] * lam2 + p['nu2'] * np.random.normal()
+
+        result[0] = np.exp((lam1_n + lam2_n) / 2.) * np.random.normal()
+        result[1] = lam1_n
+        result[2] = lam2_n
+
+        return result
+
+
+__known_models__.append(Liesenfeld2003TwoComponent)
+
+
+class Liesenfeld2003Univariate(sde.SDEModel):
+    """Univariate model from 10.1016/S0927-5398(02)00072-5"""
+
+    name = 'liesenfeld_2003_uni'
+    variable_names = ['r', 'lam']
+    parameter_defaults = {
+        'gam': 0.017,
+        'delta': 0.964,
+        'nu': 0.175
+    }
+
+    def step(self,
+             current_time: float,
+             current_vals: np.ndarray,
+             dt: float,
+             parameters: Dict[str, float]) -> np.ndarray:
+        p = parameters
+        r, lam = current_vals.tolist()
+        result = np.zeros_like(current_vals)
+
+        lam_n = p['gam'] + p['delta'] * lam + p['nu'] * np.random.normal()
+
+        result[0] = np.exp(lam_n / 2.) * np.random.normal()
+        result[1] = lam_n
+
+        return result
+
+
+__known_models__.append(Liesenfeld2003Univariate)
+
+
 class _Mamis2023SEIR(sde.SDEModel):
     """From 10.1098/rspa.2022.0568"""
 
