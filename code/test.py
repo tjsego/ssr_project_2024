@@ -1,8 +1,5 @@
 import os
-import sys
 from typing import List
-
-sys.path.append('/Users/timothy.sego/Desktop/Current/stochastic_repro')
 
 import stochastic_models as sm
 from stochastic_tests import Test

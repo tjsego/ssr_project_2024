@@ -87,6 +87,7 @@ class ComparisonResult:
             self.self_sim_evals = sim_lib.test_sampling(self.results, err_thresh=sampling_err_thresh)[0]
             self.self_sim = np.average(self.self_sim_evals), np.std(self.self_sim_evals, ddof=1)
 
+            pval_sample_size = len(self.self_sim_evals)
             results_hsize = int(sample_size/2)
             results_half = {k: v[:results_hsize, :] for k, v in self.results.items()}
             results_ecfs, _, self.eval_info = sim_lib.find_ecfs(results_half)
@@ -113,9 +114,9 @@ class ComparisonResult:
                     if err_max < self.self_sim[0]:
                         pval = 1.0
                     else:
-                        q2 = (results_hsize + 1) / results_hsize * self.self_sim[1] * self.self_sim[1]
+                        q2 = (pval_sample_size + 1) / pval_sample_size * self.self_sim[1] * self.self_sim[1]
                         lam2 = ((err_max - self.self_sim[0]) ** 2) / q2
-                        pval = np.floor((results_hsize + 1) / results_hsize * ((results_hsize - 1) / lam2 + 1)) / (results_hsize + 1)
+                        pval = np.floor((pval_sample_size + 1) / pval_sample_size * ((pval_sample_size - 1) / lam2 + 1)) / (pval_sample_size + 1)
                         if pval > 1:
                             pval = 1.0
                     self.comparison_pvals[-1][n] = pval

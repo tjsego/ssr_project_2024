@@ -110,12 +110,13 @@ class CuratorAnalysis:
         self.compare(modeler_metadata)
         err_max = max(self.err_max.values())
         err_avg = np.average(self.ks_stats_samp)
+        sample_size = len(self.ks_stats_samp)
         if err_max < err_avg:
             return 1.0
-        q2 = (modeler_metadata.sample_size + 1) / modeler_metadata.sample_size * np.var(self.ks_stats_samp, ddof=1)
+        q2 = (sample_size + 1) / sample_size * np.var(self.ks_stats_samp, ddof=1)
         lam2 = (err_max - err_avg) * (err_max - err_avg) / q2
-        pr = np.floor((modeler_metadata.sample_size + 1) / modeler_metadata.sample_size * (
-                    (modeler_metadata.sample_size - 1) / lam2 + 1)) / (modeler_metadata.sample_size + 1)
+        pr = np.floor((sample_size + 1) / sample_size * (
+                    (sample_size - 1) / lam2 + 1)) / (sample_size + 1)
         return min(1.0, pr)
 
 

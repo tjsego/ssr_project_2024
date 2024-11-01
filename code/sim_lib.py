@@ -152,6 +152,7 @@ class Metadata:
                  simulator: str, 
                  ks_stat_mean: float,
                  ks_stat_stdev: float,
+                 ks_stat_sz: int,
                  sample_times: np.ndarray,
                  ecf_evals: Dict[str, List[np.ndarray]],
                  ecf_eval_info: Dict[str, List[Tuple[int, float]]],
@@ -163,6 +164,7 @@ class Metadata:
         self.simulator = simulator
         self.ks_stat_mean = ks_stat_mean
         self.ks_stat_stdev = ks_stat_stdev
+        self.ks_stat_sz = ks_stat_sz
         self.sample_times = sample_times
         self.ecf_evals = ecf_evals
         self.ecf_eval_info = ecf_eval_info
@@ -172,7 +174,7 @@ class Metadata:
     def __str__(self) -> str:
         sl = [f'Sample size: {self.sample_size}',
               f'Simulator: {self.simulator}',
-              f'K-S statistic: {self.ks_stat_mean}, {self.ks_stat_stdev}',
+              f'K-S statistic: {self.ks_stat_mean}, {self.ks_stat_stdev}, {self.ks_stat_sz}',
               f'No. sample times: {self.sample_times.shape[0]}',
               f'Variables: {list(self.ecf_evals.keys())}',
               f'Significant figures: {self.sig_figs}']
@@ -185,6 +187,7 @@ class Metadata:
                     simulator=self.simulator,
                     ks_stat_mean=self.ks_stat_mean,
                     ks_stat_stdev=self.ks_stat_stdev,
+                    ks_stat_sz=self.ks_stat_sz,
                     sample_times=self.sample_times.tolist(),
                     ecf_evals={k: [vv.tolist() for vv in v] for k, v in self.ecf_evals.items()},
                     ecf_eval_info=self.ecf_eval_info,
@@ -202,6 +205,7 @@ class Metadata:
                         data['simulator'],
                         float(data['ks_stat_mean']),
                         float(data['ks_stat_stdev']),
+                        int(data['ks_stat_sz']),
                         np.array(data['sample_times'], dtype=float),
                         {k: [np.array(vv, dtype=float) for vv in v] for k, v in data['ecf_evals'].items()},
                         {k: [(int(vv[0]), float(vv[1])) for vv in v] for k, v in data['ecf_eval_info'].items()},

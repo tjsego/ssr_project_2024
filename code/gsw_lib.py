@@ -28,7 +28,7 @@ def _load_data(label_offset: int, num_entries: int, f_path: str, prefices) -> Op
 
 
 def load_data(prefices: List[str], res_dir: str, label_offset: int = 0, num_entries=-1, pool=None):
-    res_file_paths = [os.path.join(os.path.abspath(res_dir), f) for f in os.listdir(res_dir)]
+    res_file_paths = [os.path.join(os.path.abspath(res_dir), f) for f in os.listdir(res_dir) if f.endswith('.txt')]
     if pool is None:
         num_workers = min(len(res_file_paths), mp.cpu_count())
         pool = mp.Pool(num_workers)

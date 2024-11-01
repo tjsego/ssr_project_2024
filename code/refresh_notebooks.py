@@ -9,7 +9,14 @@ notebook_output = os.path.join(this_dir, 'refreshed_notebooks')
 notebook_dir = os.path.join(os.path.dirname(this_dir), 'notebooks')
 
 notebooks = [
+    'finance_liesenfeld2003',
     'gsw',
+    'pandemic_adak2020',
+    'pandemic_din2020',
+    'pandemic_faranda2020',
+    'pandemic_mamis2023',
+    'pandemic_ninotorres2022',
+    'pandemic_tesfaye2020',
     'proto_10paramvar',
     'proto_10paramvar2',
     'proto_2paramvar',
@@ -48,7 +55,8 @@ notebooks = [
     'sim_modeler_2',
     'sim_curator_2_fail_params',
     'sim_curator_2_fail_sigfig',
-    'sim_curator_2_pass'
+    'sim_curator_2_pass',
+    'spde_zhang2019'
 ]
 
 if __name__ == '__main__':

@@ -1,7 +1,4 @@
 import os
-import sys
-
-sys.path.append('/Users/timothy.sego/Desktop/Current/stochastic_repro')
 
 import stochastic_models as sm
 from test import assemble_test, run_test
@@ -9,6 +6,8 @@ from test import assemble_test, run_test
 
 def test_231205_0():
     results_dir = os.path.join(os.path.dirname(__file__), 'results', 'test_231205_0')
+    if not os.path.isdir(results_dir):
+        os.makedirs(results_dir)
 
     run_test(assemble_test(model=sm.biomodels_2004140002(),
                            t_fin=1800.0,

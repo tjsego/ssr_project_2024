@@ -635,7 +635,7 @@ class Test:
         if fig_axs is not None:
             fig, axs = fig_axs
         else:
-            fig, axs = plt.subplot(1, 1, figsize=(6.0, 4.0), layout='compressed', squeeze=False)
+            fig, axs = plt.subplot(1, 1, figsize=(6.0, 4.0), layout='compressed')
 
         for i, data_f in enumerate(self.ecf_sampling_fits[0]):
             if data_f is not None:
@@ -649,12 +649,12 @@ class Test:
 
         fig, axs = plt.subplots(len(self.trials), 1, sharex=True, figsize=(12.0, 3.0 * len(self.trials)),
                                 layout='compressed', squeeze=False)
-        axs = axs[:][0]
+        axs = [ax[0] for ax in axs]
         for i, t in enumerate(self.trials):
             ax = axs[i]
             ax.hist(self.ks_stats_sampling[t], density=True)
             ax.set_ylabel(f'Sample size {t}')
-        axs[-1][0].set_xlabel('EFECT error')
+        axs[-1].set_xlabel('EFECT error')
         fig.suptitle('EFECT error density plots')
         return fig, axs
 

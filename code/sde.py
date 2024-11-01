@@ -312,6 +312,7 @@ class SDEResultSample:
                                 simulator=alg_name,
                                 ks_stat_mean=float(np.mean(ks_stats_samp_hist)),
                                 ks_stat_stdev=float(np.std(ks_stats_samp_hist, ddof=1)),
+                                ks_stat_sz=len(ks_stats_samp_hist),
                                 sample_times=self.time,
                                 ecf_evals=ecf_evals,
                                 ecf_eval_info=ecf_eval_info,
@@ -567,13 +568,12 @@ def test_precision_params(reference: SDEResultSample,
                           model: SDEModel,
                           name: str,
                           value_ratios: List[float],
-                          repro_sampling_stats: Tuple[float, float],
+                          repro_sampling_stats: Tuple[float, float, int],
                           parameters: Dict[str, float] = None,
                           pool: mp.Pool = None):
     err_compare = evaluate_precision_params(reference, model, name, value_ratios, parameters, pool)
 
-    err_avg, err_std = repro_sampling_stats
-    sample_size = reference.data.shape[0]
+    err_avg, err_std, sample_size = repro_sampling_stats
     q2 = (sample_size + 1) / sample_size * err_std * err_std
 
     comparison_pvals = []

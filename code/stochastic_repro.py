@@ -1051,6 +1051,8 @@ def _test_sampling(_shm_in_info: Dict[str, str],
                    _num_results: int,
                    _num_steps: int,
                    _num_var_pers: int):
+    np.random.seed()
+    
     # Get shared data
     shm_in = {k: shared_memory.SharedMemory(name=v) for k, v in _shm_in_info.items()}
     shm_out = shared_memory.SharedMemory(name=_shm_out_info)
