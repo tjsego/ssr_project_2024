@@ -119,11 +119,11 @@ def panel_error_hist(report: SimulationReport, ax):
     ax.set_ylabel('EFECT error')
 
 
-def panel_ecfs(eval_t, ecfs_modeler, ecfs_curator, var_names: List[str], xticks, axs):
+def panel_ecfs(eval_t, ecfs_modeler, ecfs_curator, var_names: List[str], xticks, xscale, axs):
     for i, name in enumerate(var_names):
         for j in range(2):
-            axs[i][j].plot(eval_t[name], ecfs_modeler[name][:, j], alpha=0.5)
-            axs[i][j].plot(eval_t[name], ecfs_curator[name][:, j], alpha=0.5)
+            axs[i][j].plot(eval_t[name] * xscale, ecfs_modeler[name][:, j], alpha=0.5)
+            axs[i][j].plot(eval_t[name] * xscale, ecfs_curator[name][:, j], alpha=0.5)
 
     for i, name in enumerate(var_names):
         axs[i][0].set_ylabel(name).set_fontstyle('italic')
@@ -203,16 +203,17 @@ def generate_figure(res_dir: str, output_dir: str = None, preview=False):
 
     # Bottom right: Modeler vs. Curator ECFs
     xticks = [
-        [0, 2],
-        [0, 0.1],
-        [0, 0.1],
-        [0, 0.01]
+        [0, 20],
+        [0, 40],
+        [0, 25],
+        [0, 5]
     ]
+    xscale = 1E5
 
     subfig_ecfs = fig.add_subfigure(gs_bot[:, 1:])
     axs_ecfs = subfig_ecfs.subplots(4, 2, sharey=True, gridspec_kw=subplot_kwargs)
     time_max, eval_t, ecfs_modeler, ecfs_curator = conn_comparison_2.recv()
-    panel_ecfs(eval_t, ecfs_modeler, ecfs_curator, modeler_simdata.var_names, xticks, axs_ecfs)
+    panel_ecfs(eval_t, ecfs_modeler, ecfs_curator, modeler_simdata.var_names, xticks, xscale, axs_ecfs)
     subfig_ecfs.supxlabel('Transform variable', fontsize=plt.rcParams['axes.labelsize'])
     subfig_ecfs.text(0.01, 0.99, 'D', ha='left', va='top', **label_kwargs)
 
