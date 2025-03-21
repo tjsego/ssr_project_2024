@@ -576,3 +576,11 @@ def biomodels_2001130001(*args, **kwargs):
         ['x', 'y', 'z'],
         *args, **kwargs
     )
+
+
+def biomodels_6615119181(*args, **kwargs):
+    return OnlineSBMLModel(
+        "https://www.ebi.ac.uk/biomodels/services/download/get-files/MODEL6615119181/4/BIOMD0000000010_url.xml",
+        ['MKKK', 'MKKK_P', 'MKK', 'MKK_P', 'MKK_PP', 'MAPK', 'MAPK_P', 'MAPK_PP'],
+        *args, **kwargs
+    )
